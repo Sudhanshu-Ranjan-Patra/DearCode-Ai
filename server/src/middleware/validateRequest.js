@@ -19,7 +19,7 @@ export function validateChatBody(req, res, next) {
     if (!["user", "assistant", "system"].includes(msg?.role)) {
       return res.status(400).json({ error: `messages[${i}].role must be user | assistant | system` });
     }
-    if (typeof msg.content !== "string" || msg.content.trim() === "") {
+    if (typeof msg.content !== "string" || msg.content === "") {
       return res.status(400).json({ error: `messages[${i}].content must be a non-empty string` });
     }
     if (msg.content.length > 32_000) {

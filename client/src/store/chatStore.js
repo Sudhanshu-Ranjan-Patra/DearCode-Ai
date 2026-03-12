@@ -5,11 +5,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
+const DEFAULT_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
 
 export const useChatStore = create(
   persist(
     (set, get) => ({
+      get,
       // ── UI state ──────────────────────────────────────────────────────────
       sidebarOpen: true,
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),

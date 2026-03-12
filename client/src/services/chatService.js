@@ -2,14 +2,14 @@
 // All HTTP calls to the Express backend.
 // Uses fetch (native) with SSE for streaming and JSON for REST operations.
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/chat";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ─
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json", ...options.headers },
-    credentials: "include",      // send cookies for auth if needed
+    credentials: "include",      
     ...options,
   });
 
@@ -22,7 +22,7 @@ async function request(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-// ── Chat CRUD ─────────────────────────────────────────────────────────────────
+// ── Chat CRUD 
 
 export const chatService = {
   /** GET /chats — returns array of chat summaries */

@@ -9,7 +9,7 @@ import { generateTitle } from "./aiService.js";
 export async function createConversation({ title, model, userId } = {}) {
   return Conversation.create({
     title:  title || "New Chat",
-    model:  model || "google/gemini-2.0-flash-exp:free",
+    model:  model || "meta-llama/llama-3.1-8b-instruct:free",
     userId: userId || null,
   });
 }

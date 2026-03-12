@@ -13,7 +13,7 @@ export const OPENROUTER_CONFIG = {
 
 // Available models (id → display info)
 export const MODELS = {
-  "google/gemini-2.0-flash-exp:free": {
+  "meta-llama/llama-3.1-8b-instruct:free": {
     label: "Gemini 2.0 Flash",
     provider: "Google",
     maxTokens: 8192,
@@ -39,7 +39,7 @@ export const MODELS = {
   },
 };
 
-export const DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
+export const DEFAULT_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
 export const DEFAULT_MAX_TOKENS = 2048;
 
 /** Validate that a model ID is in our allowed list */

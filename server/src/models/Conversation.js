@@ -37,7 +37,7 @@ const ConversationSchema = new mongoose.Schema(
 
     model: {
       type:    String,
-      default: "google/gemini-2.0-flash-exp:free",
+      default: "meta-llama/llama-3.1-8b-instruct:free",
     },
 
     messages: {
