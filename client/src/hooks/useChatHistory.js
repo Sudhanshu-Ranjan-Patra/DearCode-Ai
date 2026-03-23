@@ -1,21 +1,8 @@
-// hooks/useChatHistory.js
-// Fetches, creates, and deletes chat sessions stored in MongoDB via the REST API.
+
 
 import { useState, useEffect, useCallback } from "react";
 import { chatService } from "../services/chatService";
 
-/**
- * Returns:
- *  chats         Array<{ _id, title, updatedAt, messageCount }>
- *  activeChatId  string | null
- *  loading       boolean
- *  error         string | null
- *  selectChat    (id: string) => Promise<messages[]>
- *  createChat    (firstMessage?: string) => Promise<chatId>
- *  deleteChat    (id: string) => Promise<void>
- *  renameChat    (id: string, title: string) => Promise<void>
- *  refreshChats  () => void
- */
 export function useChatHistory() {
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -41,7 +28,7 @@ export function useChatHistory() {
     refreshChats();
   }, [refreshChats]);
 
-  // ── Select / load a chat ─────────────────────────────────────────────────
+  // ── Select / load a chat 
   const selectChat = useCallback(async (id) => {
     setActiveChatId(id);
     try {
