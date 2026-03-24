@@ -81,10 +81,12 @@ export default function MessageBubble({
 
   return (
     <div className={`bubble-row ${role}`}>
-      {/* Avatar */}
-      <div className={`avatar ${role}`}>
-        {role === "assistant" ? "∆" : "U"}
-      </div>
+      {/* Avatar (Assistant Only) */}
+      {role === "assistant" && (
+        <div className="avatar assistant">
+          ∆
+        </div>
+      )}
 
       {/* Bubble */}
       <div className={`bubble ${role}`}>
@@ -133,55 +135,53 @@ export default function MessageBubble({
         .bubble-row {
           display: flex;
           align-items: flex-start;
-          padding: 5px 20px;
-          gap: 10px;
+          padding: 8px 16px;
+          gap: 16px;
           animation: bubbleIn .22s ease;
           font-family: 'Syne', sans-serif;
+          width: 100%;
         }
         @keyframes bubbleIn {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: none; }
         }
-        .bubble-row.user { flex-direction: row-reverse; }
+        .bubble-row.user { 
+          flex-direction: row-reverse; 
+          padding: 8px 16px;
+        }
 
         /* Avatar */
         .avatar {
-          width: 30px; height: 30px; border-radius: 9px;
+          width: 32px; height: 32px; border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 800;
-          flex-shrink: 0; margin-top: 2px;
+          font-size: 14px; font-weight: 800;
+          flex-shrink: 0; margin-top: 4px;
         }
         .avatar.assistant {
-          background: linear-gradient(135deg, #7c6af7, #38e8c6);
-          box-shadow: 0 0 12px rgba(124,106,247,.4);
+          background: #3f3f46; /* zinc-700 */
           color: #fff;
-        }
-        .avatar.user {
-          background: #1a1630;
-          border: 1px solid rgba(124,106,247,.25);
-          color: #9d93f5;
         }
 
         /* Bubble */
         .bubble {
-          max-width: min(680px, 78%);
-          border-radius: 14px;
-          font-size: 14px; line-height: 1.7;
+          font-size: 15px; line-height: 1.7;
           position: relative;
         }
         .bubble.assistant {
-          background: #0f1a1f;
-          border: 1px solid #1e1e2e;
-          border-top-left-radius: 4px;
-          padding: 12px 14px;
-          color: #e2e2f0;
+          flex: 1;
+          min-width: 0; /* Prevent overflow */
+          background: transparent;
+          border: none;
+          padding: 4px 0 12px;
+          color: #d4d4d8;
         }
         .bubble.user {
-          background: #1a1630;
-          border: 1px solid rgba(124,106,247,.22);
-          border-top-right-radius: 4px;
-          padding: 11px 14px;
-          color: #e2e2f0;
+          max-width: min(680px, 85%);
+          background: #3f3f46; /* zinc-700 */
+          border: none;
+          border-radius: 20px;
+          padding: 12px 18px;
+          color: #f4f4f5;
         }
 
         /* Header row (assistant) */

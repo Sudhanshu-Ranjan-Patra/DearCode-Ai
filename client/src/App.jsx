@@ -22,7 +22,7 @@ export default function App() {
 
   // ── Chat history (REST) 
   const {
-    chats, loading: historyLoading,
+    chats,
     selectChat, createChat, deleteChat, touchChat,
   } = useChatHistory();
 
@@ -98,6 +98,10 @@ export default function App() {
         />
 
         <div className="app-main">
+          {/* Mobile backdrop for sidebar */}
+          {sidebarOpen && (
+            <div className="sidebar-backdrop" onClick={toggleSidebar} />
+          )}
           <TopBar
             chatTitle={activeChat?.title || "New Chat"}
             isStreaming={isStreaming}
@@ -137,11 +141,21 @@ export default function App() {
 
         .app-layout {
           display: flex;
-          height: 100vh; width: 100vw;
+          height: 100dvh; width: 100vw;
           background: #09090f;
           font-family: 'Syne', sans-serif;
           color: #e2e2f0;
           overflow: hidden;
+        }
+
+        .sidebar-backdrop { display: none; }
+        @media (max-width: 768px) {
+          .sidebar-backdrop {
+            display: block; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6); z-index: 5;
+            backdrop-filter: blur(2px);
+            animation: fadeIn .2s;
+          }
         }
 
         .app-main {

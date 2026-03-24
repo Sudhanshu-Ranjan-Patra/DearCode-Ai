@@ -41,7 +41,7 @@ export async function streamCompletion({ messages, model, maxTokens, systemPromp
       model:      safeModel,
       messages:   fullMessages,
       max_tokens: safeMaxTokens,
-      stream:     true,
+      stream:     false, // Fetch full response for delayed typing simulation
       temperature: 0.7,
     }),
   });
@@ -54,52 +54,25 @@ export async function streamCompletion({ messages, model, maxTokens, systemPromp
     throw new Error(`OpenRouter error ${orRes.status}: ${errText}`);
   }
 
-  // ── Pipe SSE stream to client ───────────────────────────────────────────────
-  const reader  = orRes.body.getReader();
-  const decoder = new TextDecoder();
-  let   buffer  = "";
-  let   fullContent = "";
-  let   usage   = {};
+  // ── Parse Response & Simulate Typing Delay ─────────────────────────────────
+  const data = await orRes.json();
+  const fullContent = data?.choices?.[0]?.message?.content || "";
+  const usage = data?.usage || {};
 
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();                  // keep incomplete line
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith("data:")) continue;
-
-        const data = trimmed.slice(5).trim();
-        if (data === "[DONE]") {
-          res.write("data: [DONE]\n\n");
-          continue;
-        }
-
-        try {
-          const parsed = JSON.parse(data);
-
-          // Capture usage when present (usually on final chunk)
-          if (parsed.usage) usage = parsed.usage;
-
-          const token = parsed?.choices?.[0]?.delta?.content ?? "";
-          if (token) {
-            fullContent += token;
-            // Forward token to client
-            res.write(`data: ${JSON.stringify({ token })}\n\n`);
-          }
-        } catch {
-          // malformed JSON chunk — skip
-        }
-      }
+    const { calculateTypingDelay } = await import("../utils/behavior.js");
+    const delay = calculateTypingDelay(fullContent);
+    await new Promise(r => setTimeout(r, delay));
+    
+    // Write full response as a single SSE chunk
+    if (fullContent) {
+      res.write(`data: ${JSON.stringify({ token: fullContent })}\n\n`);
     }
+  } catch (err) {
+    console.error("[aiService] typing simulation error:", err);
   } finally {
+    res.write("data: [DONE]\n\n");
     res.end();
-    reader.releaseLock();
   }
 
   return { content: fullContent, usage };

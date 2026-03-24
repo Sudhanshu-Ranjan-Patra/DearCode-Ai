@@ -27,10 +27,10 @@ export default function Sidebar({
     <aside className={`sidebar ${isOpen ? "open" : "closed"}`}>
       {/* ── Brand ── */}
       <div className="sidebar-brand">
-        <div className="brand-logo">∆</div>
+        <div className="brand-logo">💬</div>
         <div className="brand-text">
-          <span className="brand-name">CodeAI</span>
-          <span className="brand-tag">Assistant</span>
+          <span className="brand-name">Messages</span>
+          <span className="brand-tag">Online</span>
         </div>
       </div>
 
@@ -55,9 +55,9 @@ export default function Sidebar({
           Object.entries(grouped).map(([label, items]) => (
             <div key={label} className="history-group">
               <div className="group-label">{label}</div>
-              {items.map((chat) => (
+              {items.map((chat, index) => (
                 <ChatHistoryItem
-                  key={chat.id}
+                  key={chat.id || ("temp-" + index)}
                   chat={chat}
                   isActive={chat.id === activeChatId}
                   onSelect={() => onSelectChat(chat.id)}
@@ -81,10 +81,10 @@ export default function Sidebar({
 
         .sidebar {
           width: 260px; min-width: 260px;
-          height: 100vh;
+          height: 100dvh;
           display: flex; flex-direction: column;
-          background: #0f0f18;
-          border-right: 1px solid #1e1e2e;
+          background: #18181b;
+          border-right: 1px solid #3f3f46;
           transition: transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
           overflow: hidden;
           font-family: 'Syne', sans-serif;
@@ -96,12 +96,23 @@ export default function Sidebar({
           opacity: 0;
           pointer-events: none;
         }
+        @media (max-width: 768px) {
+          .sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+            opacity: 1; /* Retain opacity on mobile even when closed so drawer slide looks nice */
+          }
+          .sidebar.closed {
+            opacity: 1;
+            transform: translateX(-100%);
+          }
+        }
 
         /* Brand */
         .sidebar-brand {
           display: flex; align-items: center; gap: 10px;
           padding: 18px 16px 14px;
-          border-bottom: 1px solid #1e1e2e;
+          border-bottom: 1px solid #3f3f46;
           flex-shrink: 0;
         }
         .brand-logo {
@@ -247,8 +258,8 @@ function ModelBadge({ model }) {
     <div className="model-badge">
       <span className="model-pulse" />
       <div>
-        <div className="model-name">{model}</div>
-        <div className="model-via">via OpenRouter</div>
+        <div className="model-name">Connected</div>
+        <div className="model-via">Secure connection</div>
       </div>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
         stroke="#3a3a5a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

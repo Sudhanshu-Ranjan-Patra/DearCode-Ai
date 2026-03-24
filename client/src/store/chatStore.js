@@ -5,7 +5,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const DEFAULT_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
+const DEFAULT_MODEL = "google/gemini-2.0-flash-001";
 
 export const useChatStore = create(
   persist(

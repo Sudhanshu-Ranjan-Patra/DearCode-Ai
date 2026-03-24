@@ -4,6 +4,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { chatService } from "../services/chatService";
+import { loadGlobalMemory, saveGlobalMemory, updateMemoryFromMessage } from "../utils/memory";
 
 /**
  * Returns:
@@ -16,7 +17,7 @@ import { chatService } from "../services/chatService";
  *  clearMessages () => void
  *  setMessages   setter
  */
-export function useChatStream(model = "google/gemini-2.0-flash-exp:free") {
+export function useChatStream(model = "google/gemini-2.0-flash-001") {
   const [messages, setMessages]     = useState([]);
   const [streamText, setStreamText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -55,12 +56,19 @@ export function useChatStream(model = "google/gemini-2.0-flash-exp:free") {
       setMessages((prev) => [...prev, userMsg]);
 
       // 2. Build conversation history for the API
-      const history = [...messages, userMsg].map((m) => ({
-        role:    m.role,
-        content: m.content,
-      }));
+      const history = [...messages, userMsg]
+        .filter((m) => m.content && typeof m.content === "string" && m.content.trim() !== "")
+        .map((m) => ({
+          role:    m.role,
+          content: m.content,
+        }));
 
-      // 3. Start streaming
+      // 3. Update global local storage memory
+      const currentMemory = loadGlobalMemory();
+      const updatedMemory = updateMemoryFromMessage(text, currentMemory);
+      saveGlobalMemory(updatedMemory);
+
+      // 4. Start streaming
       setIsStreaming(true);
       streamRef.current = "";
       setStreamText("");
@@ -73,6 +81,7 @@ export function useChatStream(model = "google/gemini-2.0-flash-exp:free") {
             messages: history,
             model,
             chatId,
+            globalMemory: updatedMemory,
           },
           // onToken callback
           (token) => {

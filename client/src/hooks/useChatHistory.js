@@ -68,6 +68,12 @@ export function useChatHistory() {
         setChats((prev) => prev.filter((c) => c._id !== id));
         if (activeChatId === id) setActiveChatId(null);
       } catch (err) {
+        // If it's already deleted (404), silently succeed to prevent zombie UI states on double-clicks
+        if (err.message.includes("404")) {
+          setChats((prev) => prev.filter((c) => c._id !== id));
+          if (activeChatId === id) setActiveChatId(null);
+          return;
+        }
         console.error("[useChatHistory] delete error:", err);
         setError("Failed to delete chat.");
       }

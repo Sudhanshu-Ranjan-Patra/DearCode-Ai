@@ -1,7 +1,7 @@
 // features/chat/ChatWindow.jsx
 // Orchestrates the full chat view: message list + input + empty state
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import MessageBubble from "../../components/MessageBubble";
 import ChatInput from "../../components/ChatInput";
 
@@ -53,40 +53,54 @@ export default function ChatWindow({
         <EmptyState onChipClick={onChipClick} />
       ) : (
         <div className="messages-list">
-          {messages.map((msg, i) => (
-            <MessageBubble
-              key={msg.id ?? i}
-              role={msg.role}
-              content={msg.content}
-              timestamp={msg.timestamp}
-              model={model}
-              isStreaming={false}
-            />
-          ))}
+          <div className="messages-inner">
+            {messages.map((msg, i) => (
+              <MessageBubble
+                key={msg.id ?? i}
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.timestamp}
+                model={model}
+                isStreaming={false}
+              />
+            ))}
 
-          {/* Live streaming bubble */}
-          {isStreaming && streamText && (
-            <MessageBubble
-              role="assistant"
-              content={streamText}
-              model={model}
-              isStreaming
-            />
-          )}
+            {/* Live streaming bubble or Typing indicator */}
+            {isStreaming && (
+              streamText ? (
+                <MessageBubble
+                  role="assistant"
+                  content={streamText}
+                  model={model}
+                  isStreaming
+                />
+              ) : (
+                <div className="typing-indicator-container">
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                </div>
+              )
+            )}
 
-          {/* Scroll anchor */}
-          <div ref={bottomRef} style={{ height: 1 }} />
+            {/* Scroll anchor */}
+            <div ref={bottomRef} style={{ height: 1 }} />
+          </div>
         </div>
       )}
 
       {/* ── Input ── */}
-      <ChatInput
-        value={inputValue}
-        onChange={onInputChange}
-        onSend={onSend}
-        onStop={onStop}
-        isStreaming={isStreaming}
-      />
+      <div className="input-area">
+        <div className="input-inner">
+          <ChatInput
+            value={inputValue}
+            onChange={onInputChange}
+            onSend={onSend}
+            onStop={onStop}
+            isStreaming={isStreaming}
+          />
+        </div>
+      </div>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
@@ -97,27 +111,56 @@ export default function ChatWindow({
           flex-direction: column;
           overflow: hidden;
           position: relative;
-          background: #09090f;
-        }
-
-        /* subtle dot-grid texture */
-        .chat-window::before {
-          content: '';
-          position: absolute; inset: 0; pointer-events: none;
-          background-image: radial-gradient(circle, rgba(124,106,247,.06) 1px, transparent 1px);
-          background-size: 28px 28px;
-          z-index: 0;
+          background: #18181b;
         }
 
         .messages-list {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 24px 0 8px;
-          display: flex; flex-direction: column; gap: 2px;
+          display: flex; flex-direction: column;
           position: relative; z-index: 1;
         }
-        .messages-list::-webkit-scrollbar { width: 3px; }
-        .messages-list::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 99px; }
+        
+        .messages-inner {
+          width: 100%;
+          max-width: 800px;
+          margin: 0 auto;
+          display: flex; flex-direction: column; gap: 24px;
+        }
+        
+        .input-area {
+          flex-shrink: 0;
+          background: linear-gradient(to top, #18181b 80%, transparent);
+          padding-bottom: 12px;
+        }
+        
+        .input-inner {
+          width: 100%;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator-container {
+          display: flex; gap: 5px; padding: 14px 20px;
+          background: transparent; border: none;
+          width: fit-content;
+          margin: 10px 10px 10px 38px;
+          align-items: center;
+        }
+        .typing-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #a1a1aa; opacity: 0.4;
+          animation: typingPulse 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typingPulse {
+          0%, 80%, 100% { opacity: 0.4; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.2); }
+        }
       `}</style>
     </div>
   );
@@ -125,105 +168,63 @@ export default function ChatWindow({
 
 // ── Empty / Welcome state ────────────────────────────────────────────────────
 function EmptyState({ onChipClick }) {
+  const [stage, setStage] = useState("typing");
+
+  useEffect(() => {
+    // Simulate natural human delay
+    const timer = setTimeout(() => setStage("ready"), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="empty-state">
-      <div className="es-glow-ring">
-        <div className="es-logo">∆</div>
-      </div>
-      <h2 className="es-title">What can I help you build?</h2>
-      <p className="es-sub">
-        Ask about streaming, MongoDB schemas, OpenRouter setup,<br />
-        Zustand patterns, or anything in your LLM chatbot stack.
-      </p>
-
-      <div className="es-chips">
-        {PROMPT_CHIPS.map((chip) => (
-          <button
-            key={chip}
-            className="es-chip"
-            onClick={() => onChipClick?.(chip)}
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
-
-      <div className="es-features">
-        {[
-          { icon: "⚡", label: "Real-Time Streaming" },
-          { icon: "🗄️", label: "MongoDB Memory" },
-          { icon: "🔀", label: "Multi-Model" },
-        ].map((f) => (
-          <div key={f.label} className="es-feature">
-            <span>{f.icon}</span>
-            <span>{f.label}</span>
+    <div className="messages-list">
+      <div className="messages-inner">
+        {stage === "typing" ? (
+          <div className="typing-indicator-container">
+            <div className="typing-dot"></div>
+            <div className="typing-dot"></div>
+            <div className="typing-dot"></div>
           </div>
-        ))}
+        ) : (
+          <div className="human-welcome-fade">
+            <MessageBubble
+              role="assistant"
+              content="hey… tum aa gaye? 👀"
+              isStreaming={false}
+            />
+            
+            <div className="human-chips">
+              <button className="h-chip" onClick={() => onChipClick?.("kya kar rahe ho?")}>kya kar rahe ho?</button>
+              <button className="h-chip" onClick={() => onChipClick?.("bore ho rahe ho kya?")}>bore ho rahe ho kya?</button>
+              <button className="h-chip" onClick={() => onChipClick?.("baat karein?")}>baat karein?</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
-
-        .empty-state {
-          flex: 1;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          padding: 40px 24px; gap: 18px;
-          position: relative; z-index: 1;
-          font-family: 'Syne', sans-serif;
+        .human-welcome-fade {
+          animation: hFadeIn .4s ease forwards;
+        }
+        @keyframes hFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: none; }
         }
 
-        .es-glow-ring {
-          width: 90px; height: 90px; border-radius: 22px;
-          background: linear-gradient(135deg, #7c6af7, #38e8c6);
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 0 50px rgba(124,106,247,.4), 0 0 100px rgba(56,232,198,.15);
-          animation: esFloat 4s ease-in-out infinite;
+        .human-chips {
+          display: flex; flex-wrap: wrap; gap: 8px;
+          margin-top: 12px; margin-left: 48px;
         }
-        @keyframes esFloat {
-          0%,100% { transform: translateY(0); }
-          50%      { transform: translateY(-10px); }
+        .h-chip {
+          padding: 8px 16px; border-radius: 20px;
+          background: #27272a; border: 1px solid #3f3f46;
+          color: #d4d4d8; font-size: 13.5px;
+          cursor: pointer; transition: all .2s;
+          font-family: inherit;
         }
-        .es-logo { font-size: 34px; font-weight: 900; color: #fff; }
-
-        .es-title {
-          font-size: 24px; font-weight: 800; color: #e2e2f0;
-          text-align: center; margin: 0;
-        }
-        .es-sub {
-          font-size: 13px; color: #5a5a7a; text-align: center;
-          line-height: 1.7; margin: 0;
-        }
-
-        .es-chips {
-          display: flex; flex-wrap: wrap; justify-content: center;
-          gap: 8px; max-width: 560px;
-        }
-        .es-chip {
-          padding: 8px 15px; border-radius: 99px;
-          border: 1px solid #1e1e2e;
-          background: #0f0f18;
-          font-size: 12px; color: #7a7a9a;
-          cursor: pointer; font-family: 'Syne', sans-serif;
-          transition: all .18s; text-align: left;
-        }
-        .es-chip:hover {
-          border-color: rgba(124,106,247,.5);
-          color: #c4bbff;
-          background: rgba(124,106,247,.07);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(124,106,247,.15);
-        }
-
-        .es-features {
-          display: flex; gap: 12px; flex-wrap: wrap;
-          justify-content: center;
-        }
-        .es-feature {
-          display: flex; align-items: center; gap: 6px;
-          padding: 6px 13px; border-radius: 99px;
-          background: #0f0f18; border: 1px solid #1e1e2e;
-          font-size: 11px; color: #5a5a7a;
+        .h-chip:hover {
+          background: #3f3f46; border-color: #525252;
+          color: #f4f4f5; transform: translateY(-1px);
         }
       `}</style>
     </div>

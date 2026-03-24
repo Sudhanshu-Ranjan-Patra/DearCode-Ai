@@ -1,7 +1,7 @@
 // server/src/middleware/errorHandler.js
 // Centralised Express error handler — must be registered LAST via app.use().
 
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   // Mongoose validation error
   if (err.name === "ValidationError") {
     const messages = Object.values(err.errors).map((e) => e.message);

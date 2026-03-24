@@ -1,14 +1,12 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
-
+@import "tailwindcss";
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg:         #09090f;
-  --surface:    #0f0f18;
-  --panel:      #13131e;
-  --border:     #1e1e2e;
-  --border-2:   #2a2a3e;
+  --bg:         #18181b; /* zinc-900 */
+  --surface:    #27272a; /* zinc-800 */
+  --panel:      #18181b; 
+  --border:     #3f3f46; /* zinc-700 */
+  --border-2:   #525252; /* zinc-600 */
 
   --accent:     #7c6af7;
   --accent-dim: rgba(124, 106, 247, .15);
@@ -16,10 +14,10 @@
   --glow:       rgba(124, 106, 247, .35);
   --glow2:      rgba(56, 232, 198, .25);
 
-  --text:       #e2e2f0;
-  --text-2:     #9a9ab0;
-  --muted:      #5a5a7a;
-  --muted-2:    #3a3a5a;
+  --text:       #f4f4f5; /* zinc-100 */
+  --text-2:     #d4d4d8; /* zinc-300 */
+  --muted:      #a1a1aa; /* zinc-400 */
+  --muted-2:    #71717a; /* zinc-500 */
 
   --danger:     #ef4444;
   --success:    #22c55e;

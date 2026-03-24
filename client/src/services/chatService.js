@@ -33,11 +33,13 @@ export const chatService = {
 
   /** POST /chats — body: { title } */
   createChat: (body) =>
-    request("/conversations", { method: "POST", body: JSON.stringify(body) }),
+    request("/conversations", { method: "POST", body: JSON.stringify(body) })
+      .then(data => data.conversation ?? data),
 
   /** PATCH /chats/:id */
   updateChat: (chatId, body) =>
-    request(`/conversations/${chatId}`, { method: "PATCH", body: JSON.stringify(body) }),
+    request(`/conversations/${chatId}`, { method: "PATCH", body: JSON.stringify(body) })
+      .then(data => data.conversation ?? data),
 
   /** DELETE /chats/:id */
   deleteChat: (chatId) =>
@@ -84,17 +86,22 @@ export const chatService = {
         const data = line.slice(6).trim();
         if (data === "[DONE]") return;
 
+        let parsed;
         try {
-          const parsed = JSON.parse(data);
-          // OpenRouter / OpenAI delta format
-          const token =
-            parsed?.choices?.[0]?.delta?.content ??
-            parsed?.token ??
-            "";
-          if (token) onToken(token);
+          parsed = JSON.parse(data);
         } catch {
-          // ignore malformed JSON lines
+          continue; // ignore malformed JSON lines
         }
+
+        if (parsed.error) {
+          throw new Error(typeof parsed.error === "string" ? parsed.error : JSON.stringify(parsed.error));
+        }
+
+        const token =
+          parsed?.choices?.[0]?.delta?.content ??
+          parsed?.token ??
+          "";
+        if (token) onToken(token);
       }
     }
   },
