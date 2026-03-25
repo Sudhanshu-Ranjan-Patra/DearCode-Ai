@@ -4,7 +4,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { chatService } from "../services/chatService";
-import { loadGlobalMemory, saveGlobalMemory, updateMemoryFromMessage } from "../utils/memory";
+import { loadGlobalMemory, saveGlobalMemory, updateMemoryFromMessage, getDeviceId } from "../utils/memory";
 
 /**
  * Returns:
@@ -67,6 +67,8 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
       const currentMemory = loadGlobalMemory();
       const updatedMemory = updateMemoryFromMessage(text, currentMemory);
       saveGlobalMemory(updatedMemory);
+      
+      const deviceId = getDeviceId();
 
       // 4. Start streaming
       setIsStreaming(true);
@@ -82,6 +84,7 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
             model,
             chatId,
             globalMemory: updatedMemory,
+            deviceId,
           },
           // onToken callback
           (token) => {

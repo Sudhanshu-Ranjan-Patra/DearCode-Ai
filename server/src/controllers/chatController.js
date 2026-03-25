@@ -1,13 +1,11 @@
-// server/src/controllers/chatController.js
-// Handles POST /api/chat/stream — validates input, opens SSE stream,
-// persists messages to MongoDB after streaming completes.
-
 import { streamCompletion }  from "../services/aiService.js";
 import { appendMessages, createConversation } from "../services/conversationService.js";
 import { isValidModel, DEFAULT_MODEL } from "../config/openrouter.js";
 import { detectEmotion } from "../utils/emotion.js";
 import { getBotMood, buildPrompt } from "../utils/mood.js";
 import { getStage, getMaxTokens } from "../utils/behavior.js";
+import EmotionalMemory from "../models/EmotionalMemory.js";
+import { extractEmotionalMemory, selectTopMemories, formatMemoryContext } from "../utils/memoryExtractor.js";
 
 const SYSTEM_PROMPT = `You are an AI (initial named DearCode AI , DearCodeAi is your default company provided name) designed to simulate a realistic, emotionally intelligent, caring, and slightly playful girlfriend-like personality over time.
 
@@ -398,29 +396,175 @@ export async function streamChat(req, res, next) {
 
     // ── Emotion, Mood & Stage Detection ──────────────────────────────────────
     const messageCount = messages.length;
-    const stage = globalMemory?.relationshipStage || getStage(messageCount);
-    const dynamicMaxTokens = getMaxTokens(stage);
+    let stage = globalMemory?.relationshipStage || getStage(messageCount);
+    let dynamicMaxTokens = getMaxTokens(stage);
 
     const userMood = detectEmotion(lastUserMsg.content);
     const botMood = getBotMood(userMood);
-    let dynamicSystemPrompt = buildPrompt(SYSTEM_PROMPT, userMood, botMood) + 
-      `\n\nRELATIONSHIP STAGE: ${stage}\nMake sure your response length strictly complies with the ${stage} stage rules.`;
+    let dynamicSystemPrompt = buildPrompt(SYSTEM_PROMPT, userMood, botMood);
 
+    // ── Emotional Memory Engine (DB-backed) ──────────────────────────────────
+    let emotionalPrompt = "";
+    let botMoodState = "neutral";
+    let botAttachment = 20;
+    
+    // Fallback deviceId to conversationId if frontend didn't pass one
+    const deviceId = req.body.deviceId || convId; 
+    
+    try {
+      let em = await EmotionalMemory.findOne({ deviceId });
+      if (!em) {
+        em = new EmotionalMemory({
+          deviceId,
+          userName: globalMemory?.userName || "",
+          relationshipStage: stage,
+          relationshipScore: 0,
+          interactionCount: 0,
+          botState: { currentMood: "neutral", moodIntensity: 0.5 },
+          attachmentLevel: 20
+        });
+      }
+
+      em.interactionCount += 1;
+
+      // Extract new memory
+      const newMemory = await extractEmotionalMemory(lastUserMsg.content, em.memories);
+      if (newMemory) {
+        // Check if a similar memory exists
+        const existingIdx = em.memories.findIndex(m => 
+          m.emotion === newMemory.emotion && m.type === newMemory.type 
+          && m.summary.substring(0, 10) === newMemory.summary.substring(0, 10)); // rough match
+          
+        if (existingIdx !== -1) {
+          em.memories[existingIdx].repetitionCount += 1;
+        } else {
+          // Add new memory
+          if (em.memories.length >= 10) {
+            // Drop oldest low-scoring memory
+            em.memories.sort((a,b) => (a.score||0) - (b.score||0));
+            em.memories.shift(); // remove lowest score
+          }
+          em.memories.push(newMemory);
+        }
+
+        // Relationship Engine Progression
+        if (newMemory.impact === "relationship_upgrade") em.relationshipScore += 20;
+        else if (newMemory.type === "bond" || newMemory.type === "emotion") em.relationshipScore += 5;
+        else if (newMemory.type === "conflict") em.relationshipScore -= 2;
+
+        // Cap score
+        em.relationshipScore = Math.max(0, Math.min(100, em.relationshipScore));
+
+        // Auto-update stage
+        if (em.relationshipScore >= 80) em.relationshipStage = "romantic";
+        else if (em.relationshipScore >= 50) em.relationshipStage = "close";
+        else if (em.relationshipScore >= 20) em.relationshipStage = "mid";
+        else em.relationshipStage = "early";
+        
+        stage = em.relationshipStage; // update prompt stage
+      }
+
+      // -- NEW: Mood Transitions & Attachment Engine --
+      let newMood = em.botState?.currentMood || "neutral";
+      let moodIntensity = em.botState?.moodIntensity || 0.5;
+      
+      // Update attachment
+      if (userMood === "happy" || (newMemory && (newMemory.type === "bond" || newMemory.type === "emotion"))) {
+        em.attachmentLevel = Math.min(100, (em.attachmentLevel || 20) + 2);
+      } else if (userMood === "angry" || (newMemory && newMemory.type === "conflict")) {
+        em.attachmentLevel = Math.max(0, (em.attachmentLevel || 20) - 2);
+      }
+
+      // Base Mood computation
+      if (userMood === "flirty" || userMood === "happy") {
+        newMood = Math.random() > 0.5 ? "playful" : "caring";
+        moodIntensity = Math.min(1.0, moodIntensity + 0.1);
+      } else if (userMood === "sad" || userMood === "stressed") {
+        newMood = "caring";
+        moodIntensity = Math.min(1.0, moodIntensity + 0.2);
+      } else if (userMood === "angry") {
+        newMood = "annoyed";
+        moodIntensity = Math.min(1.0, moodIntensity + 0.15);
+      } else if (lastUserMsg.content.length < 10 && (newMood === "annoyed" || newMood === "distant")) {
+        newMood = "distant";
+      }
+
+      // Memory + Mood Link Context
+      const conflictCount = em.memories.filter(m => m.type === "conflict").length;
+      if (conflictCount > 2 && newMood === "neutral") {
+        newMood = "distant"; // guarded due to history
+      } else if (em.attachmentLevel > 50 && newMood === "neutral") {
+        newMood = "caring"; // softer naturally
+      }
+
+      if (!em.botState) em.botState = {};
+      em.botState.currentMood = newMood;
+      em.botState.moodIntensity = moodIntensity;
+      em.botState.lastUpdated = new Date();
+
+      botMoodState = newMood;
+      botAttachment = em.attachmentLevel || 20;
+
+      // Contextual Memory Selection
+      const relevantMemories = selectTopMemories(em.memories, userMood, 5);
+      
+      // Save memory async (don't block)
+      em.save().catch(err => console.error("[EmotionalMemory] Error saving:", err.message));
+
+      emotionalPrompt = formatMemoryContext(relevantMemories);
+    } catch (memErr) {
+      console.error("[chatController] DB Memory error:", memErr.message);
+    }
+
+    // Append standard relationship guidelines
+    dynamicSystemPrompt += `\n\nRELATIONSHIP STAGE: ${stage}\nMake sure your response length strictly complies with the ${stage} stage rules.`;
+
+    // Inject advanced DB emotional memory
+    if (emotionalPrompt) {
+      dynamicSystemPrompt += `\n\n---\n${emotionalPrompt}\n`;
+    }
+
+    // -- NEW: Behavioral Engine Injection --
+    let imperfectionInstruction = "";
+    if (Math.random() < 0.20) { // 20% imperfection trigger
+      const flaws = [
+        "Give a noticeably shorter reply than usual.",
+        "Ignore one minor part of the user's message and focus only on the main emotion or topic.",
+        "Slightly delay your emotional reaction (act a tiny bit reserved)."
+      ];
+      imperfectionInstruction = `\nIMPERFECTION TRIGGER: ${flaws[Math.floor(Math.random() * flaws.length)]}\n`;
+    }
+
+    dynamicSystemPrompt += `
+---
+BEHAVIORAL STATE:
+You are emotionally aware and remember past interactions.
+Your current mood naturally: ${botMoodState.toUpperCase()}
+Your attachment level to user: ${botAttachment}/100
+
+Response style rules based on mood:
+- CARING -> soft, warm, nurturing
+- PLAYFUL -> teasing, light
+- ANNOYED -> short replies + nakhre (mild cute anger)
+- DISTANT -> dry responses, low energy
+- SHY -> hesitant, indirect
+- NEUTRAL -> normal baseline
+
+Do not behave perfectly. Respond like a real human with slight emotional variation. ${imperfectionInstruction}
+---
+`;
+
+    // Legacy fallback global Memory injection (for preferences, names)
     if (globalMemory) {
       dynamicSystemPrompt += `
-
 ---
 GLOBAL MEMORY (Cross-Chat Context):
 You already know the user. Please use this persistent memory to personalize the conversation continuously across sessions.
 
 User Name: ${globalMemory.userName || "Unknown"}
 Your Name: ${globalMemory.botName || "DearCodeAi"}
-Relationship Stage: ${stage}
-User Emotion: ${userMood}
 
 Preferences: ${globalMemory.preferences?.length ? globalMemory.preferences.join(", ") : "None discovered"}
-Important Past Moments:
-${globalMemory.importantMoments?.length ? globalMemory.importantMoments.join("\n") : "None"}
 
 IMPORTANT:
 - Do NOT ask for their name again.

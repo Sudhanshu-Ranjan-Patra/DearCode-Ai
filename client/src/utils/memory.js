@@ -80,3 +80,16 @@ export function updateMemoryFromMessage(message, currentMemory) {
 
   return newMem;
 }
+
+export function getDeviceId() {
+  try {
+    let id = localStorage.getItem("deviceId");
+    if (!id) {
+      id = "device_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      localStorage.setItem("deviceId", id);
+    }
+    return id;
+  } catch (e) {
+    return "anonymous_device";
+  }
+}

@@ -1,7 +1,3 @@
-// store/chatStore.js
-// Zustand global store — manages UI state: active chat, model, sidebar, input
-// All server-state (messages, history) lives in the hooks layer.
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

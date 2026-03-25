@@ -1,4 +1,4 @@
-// server/src/index.js
+// server/src/server.js
 // Express app entry point — boots DB, mounts routes, starts HTTP server.
 import "./config/env.js";
 import express      from "express";
