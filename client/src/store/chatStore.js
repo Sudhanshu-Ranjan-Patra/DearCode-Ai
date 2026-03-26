@@ -12,9 +12,12 @@ export const useChatStore = create(
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebarOpen: (v) => set({ sidebarOpen: v }),
 
-      // ── Active chat ───────────────────────────────────────────────────────
+      // ── Active chat & Character ─────────────────────────────────────────────
       activeChatId: null,
       setActiveChatId: (id) => set({ activeChatId: id }),
+      
+      selectedCharacter: "girlfriend",
+      setSelectedCharacter: (char) => set({ selectedCharacter: char }),
 
       // ── Input ─────────────────────────────────────────────────────────────
       inputValue: "",
@@ -44,6 +47,7 @@ export const useChatStore = create(
         sidebarOpen: s.sidebarOpen,
         model:       s.model,
         theme:       s.theme,
+        selectedCharacter: s.selectedCharacter,
       }),
     }
   )

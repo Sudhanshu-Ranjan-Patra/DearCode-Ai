@@ -5,6 +5,7 @@
 import { useState, useRef, useCallback } from "react";
 import { chatService } from "../services/chatService";
 import { loadGlobalMemory, saveGlobalMemory, updateMemoryFromMessage, getDeviceId } from "../utils/memory";
+import { useChatStore } from "../store/chatStore";
 
 /**
  * Returns:
@@ -85,6 +86,7 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
             chatId,
             globalMemory: updatedMemory,
             deviceId,
+            character: useChatStore.getState().selectedCharacter,
           },
           // onToken callback
           (token) => {

@@ -16,6 +16,7 @@ export default function App() {
     activeChatId, setActiveChatId,
     inputValue, setInputValue, clearInput,
     model, setModel,
+    selectedCharacter, setSelectedCharacter,
     globalError, clearError,
     resetForNewChat,
   } = useChatStore();
@@ -57,6 +58,11 @@ export default function App() {
     clearMessages();
     // Chat record is created lazily when the first message is sent
   }, [resetForNewChat, clearMessages]);
+
+  const handleCharacterChange = useCallback((charId) => {
+    setSelectedCharacter(charId);
+    handleNewChat(); // Ensure UI cleans slate when character brain swaps
+  }, [setSelectedCharacter, handleNewChat]);
 
   /** Send a message (or use chip text directly) */
   const handleSend = useCallback(async (overrideText) => {
@@ -106,6 +112,8 @@ export default function App() {
             chatTitle={activeChat?.title || "New Chat"}
             isStreaming={isStreaming}
             model={model}
+            selectedCharacter={selectedCharacter}
+            onCharacterChange={handleCharacterChange}
             onModelChange={setModel}
             onToggleSidebar={toggleSidebar}
             onNewChat={handleNewChat}

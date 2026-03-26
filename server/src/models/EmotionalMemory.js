@@ -19,8 +19,13 @@ const MemoryItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const EmotionalMemorySchema = new mongoose.Schema({
-  deviceId: { type: String, required: true, unique: true },
+  deviceId: { type: String, required: true },
+  character: { type: String, default: "girlfriend" },
   userName: { type: String, default: "" },
+  botIdentity: {
+    name: { type: String, default: "" },
+    personality: { type: String, default: "" }
+  },
   relationshipStage: {
     type: String,
     default: "early",
@@ -44,5 +49,7 @@ const EmotionalMemorySchema = new mongoose.Schema({
   timestamps: true,
   versionKey: false
 });
+
+EmotionalMemorySchema.index({ deviceId: 1, character: 1 }, { unique: true });
 
 export default mongoose.model("EmotionalMemory", EmotionalMemorySchema);

@@ -38,18 +38,6 @@ export function updateMemoryFromMessage(message, currentMemory) {
 
   const lower = message.toLowerCase();
 
-  // 1. Name detection
-  const nameMatch = lower.match(/(?:my name is|i am|call me) ([a-z]+)/);
-  if (nameMatch && !["sad", "happy", "angry", "tired", "lonely", "here", "there"].includes(nameMatch[1])) {
-    newMem.userName = nameMatch[1];
-  }
-  
-  // Bot name
-  const botNameMatch = lower.match(/(?:your name is|i will call you|tumhara naam) ([a-z]+)/);
-  if (botNameMatch) {
-    newMem.botName = botNameMatch[1];
-  }
-
   // 2. Preferences
   const prefMatch = lower.match(/(?:i like|i love|i enjoy|my favorite is) ([a-z0-9\s]+)/);
   if (prefMatch) {

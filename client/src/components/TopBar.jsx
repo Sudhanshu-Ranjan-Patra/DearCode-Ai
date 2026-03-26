@@ -10,11 +10,19 @@ const MODELS = [
   { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Llama 3.1 8B", tag: "Free" },
 ];
 
+const CHARACTERS = [
+  { id: "girlfriend", icon: "❤️", label: "Girlfriend" },
+  { id: "bestfriend", icon: "🤝", label: "Best Friend" },
+  { id: "motivator", icon: "🚀", label: "Motivator" },
+];
+
 /**
  * Props:
  *  chatTitle    string
  *  isStreaming  boolean
  *  model        string  (model id)
+ *  selectedCharacter string
+ *  onCharacterChange (charId: string) => void
  *  onModelChange (modelId: string) => void
  *  onToggleSidebar () => void
  *  onNewChat    () => void
@@ -23,6 +31,8 @@ export default function TopBar({
   chatTitle = "New Chat",
   isStreaming = false,
   model = MODELS[0].id,
+  selectedCharacter = "girlfriend",
+  onCharacterChange,
   onModelChange,
   onToggleSidebar,
   onNewChat,
@@ -50,6 +60,22 @@ export default function TopBar({
           Generating…
         </div>
       )}
+
+      {/* Center: Character Switcher */}
+      <div className="topbar-center">
+        <div className="character-switch">
+          {CHARACTERS.map(c => (
+            <button
+              key={c.id}
+              className={`char-tab ${c.id === selectedCharacter ? "active" : ""}`}
+              onClick={() => onCharacterChange?.(c.id)}
+            >
+              <span className="char-icon">{c.icon}</span>
+              <span className="char-label">{c.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Right: model picker + new chat */}
       <div className="topbar-right">
@@ -147,7 +173,38 @@ export default function TopBar({
         }
         @keyframes sDot { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        .topbar-right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+        .topbar-center {
+          flex: 1; display: flex; justify-content: center;
+        }
+        
+        .character-switch {
+          display: flex; align-items: center; gap: 4px;
+          background: #13131e; border: 1px solid #1e1e2e;
+          padding: 4px; border-radius: 99px;
+        }
+
+        .char-tab {
+          display: flex; align-items: center; gap: 6px;
+          padding: 6px 14px; border-radius: 99px;
+          border: none; background: transparent; cursor: pointer;
+          font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+          color: #5a5a7a; transition: all .2s;
+        }
+        
+        .char-tab:hover { color: #9a9ab0; }
+        
+        .char-tab.active {
+          background: rgba(124,106,247,.15); color: #c4bbff;
+          box-shadow: inset 0 0 0 1px rgba(124,106,247,.3);
+        }
+
+        .char-icon { font-size: 14px; }
+        @media (max-width: 768px) {
+          .char-label { display: none; }
+          .char-tab { padding: 6px 10px; }
+        }
+
+        .topbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
         /* Model selector */
         .model-selector {
