@@ -42,13 +42,6 @@ ATTITUDE + CHILL BEHAVIOR:
 `;
 }
 
-/**
- * POST /api/chat/stream
- * Body: { messages, model, conversationId? }
- *
- * Opens an SSE connection, streams tokens to the client,
- * then persists the exchange to MongoDB.
- */
 export async function streamChat(req, res, next) {
   try {
     const { messages, model, conversationId, globalMemory } = req.body;
@@ -188,7 +181,6 @@ export async function streamChat(req, res, next) {
         newMood = "distant";
       }
 
-      // Memory + Mood Link Context
       const conflictCount = em.memories.filter(m => m.type === "conflict").length;
       if (conflictCount > 2 && newMood === "neutral") {
         newMood = "distant"; // guarded due to history
