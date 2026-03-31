@@ -162,7 +162,7 @@ export default function PersonaSettingsModal({
         <div className="persona-slider-block">
           <div className="persona-slider-copy">
             <strong>Emotional intensity</strong>
-            <span>How strongly this persona reacts and expresses emotion.</span>
+            <span style={{ padding: "8px", display: "inline-block" }}>How strongly this persona reacts and expresses emotion.</span>
           </div>
           <input
             type="range"

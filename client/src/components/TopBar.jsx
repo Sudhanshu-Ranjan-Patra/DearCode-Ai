@@ -30,10 +30,10 @@ export default function TopBar({
   selectedCharacter = "girlfriend",
   onCharacterChange,
   onToggleSidebar,
-  onNewChat,
+  // onNewChat,
   user,
-  onLogout,
-  loggingOut = false,
+  // onLogout,
+  // loggingOut = false,
   sessionNotice = null,
   onDismissSessionNotice = () => {},
   personaProfiles = {},
@@ -87,7 +87,7 @@ export default function TopBar({
             onClick={onDismissSessionNotice}
             title="Dismiss notice"
           >
-            ×
+           ☓
           </button>
         </div>
       )}
@@ -137,12 +137,12 @@ export default function TopBar({
         </div>
 
         {/* New chat shortcut */}
-        <button className="topbar-btn accent" onClick={onNewChat} title="New chat">
+        {/* <button className="topbar-btn accent" onClick={onNewChat} title="New chat">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-        </button>
+        </button> */}
 
         <button
           className="topbar-btn"
@@ -150,7 +150,7 @@ export default function TopBar({
           title="Persona settings"
           type="button"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          <svg width="25" height="30" viewBox="0 -2 24 24" fill="none"
             stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 3l1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6L12 3z" />
             <circle cx="12" cy="12" r="2.2" />
@@ -181,23 +181,6 @@ export default function TopBar({
             <span className="account-name">{user?.name || "Account"}</span>
             <span className="account-email">{user?.mood || user?.email || ""}</span>
           </div>
-          <button
-            type="button"
-            className="account-logout"
-            onClick={(event) => {
-              event.stopPropagation();
-              onLogout?.();
-            }}
-            disabled={loggingOut}
-            title="Log out"
-          >
-            {loggingOut ? (
-              <>
-                <span className="logout-spinner" aria-hidden="true" />
-                <span>Signing out</span>
-              </>
-            ) : "Log out"}
-          </button>
         </div>
       </div>
 
@@ -501,6 +484,29 @@ export default function TopBar({
           .account-chip {
             max-width: none;
           }
+          .model-tag { display: none; }
+        }
+
+        @media (max-width: 640px) {
+          .topbar {
+            height: 52px;
+            padding: 0 10px;
+          }
+          .topbar-right { gap: 4px; }
+          .topbar-title { flex: 1; min-width: 0; }
+          .model-selector {
+            padding: 5px 8px;
+            gap: 5px;
+            font-size: 11px;
+          }
+          .model-label, .model-tag { display: none; }
+          .account-chip {
+            padding: 4px;
+            border-radius: 10px;
+            gap: 4px;
+          }
+          .account-name { display: none; }
+          .account-email { display: none; }
         }
       `}</style>
     </header>

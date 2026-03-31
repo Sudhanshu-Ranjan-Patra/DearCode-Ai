@@ -567,9 +567,11 @@ function ChatWorkspace({ user, onLoggedOut, sessionNotice, onDismissSessionNotic
           user={user}
           saving={profileSaving}
           passwordSaving={passwordSaving}
+          loggingOut={loggingOut}
           onClose={() => setProfileModalOpen(false)}
           onSaveProfile={handleSaveProfile}
           onChangePassword={handleChangePassword}
+          onLogout={handleLogout}
         />
       )}
 

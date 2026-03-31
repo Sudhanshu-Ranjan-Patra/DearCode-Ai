@@ -42,9 +42,11 @@ export default function ProfileSettingsModal({
   user,
   saving = false,
   passwordSaving = false,
+  loggingOut = false,
   onClose,
   onSaveProfile,
   onChangePassword,
+  onLogout,
 }) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [profileDraft, setProfileDraft] = useState({
@@ -156,8 +158,8 @@ export default function ProfileSettingsModal({
         <div className="profile-header">
           <div>
             <span className="profile-badge">Profile</span>
-            <h2>Your account, identity, and current vibe</h2>
-            <p>Update your personal details, auth info, profile photo, and current mood from one clean place.</p>
+            <h2>Account settings</h2>
+            <p>Manage your account information and security settings in one place.</p>
           </div>
           <button type="button" className="profile-close" onClick={onClose}>×</button>
         </div>
@@ -358,6 +360,14 @@ export default function ProfileSettingsModal({
             >
               {passwordSaving ? "Updating password…" : "Update password"}
             </button>
+            <button
+              type="button"
+              className="profile-logout"
+              onClick={onLogout}
+              disabled={loggingOut}
+            >
+              {loggingOut ? "Signing out…" : "Log out"}
+            </button>
           </div>
         </section>
       </div>
@@ -494,6 +504,26 @@ export default function ProfileSettingsModal({
         .profile-primary:hover:not(:disabled) {
           background: rgba(56,232,198,.18);
           border-color: rgba(56,232,198,.34);
+        }
+        .profile-logout {
+          border: 1px solid rgba(239,68,68,.25);
+          background: rgba(239,68,68,.12);
+          color: #fda4af;
+          margin-left: auto;
+          padding: 11px 15px;
+          border-radius: 14px;
+          font: inherit;
+          cursor: pointer;
+          transition: all .18s ease;
+        }
+        .profile-logout:hover:not(:disabled) {
+          background: rgba(239,68,68,.22);
+          border-color: rgba(239,68,68,.45);
+          color: #fff;
+        }
+        .profile-logout:disabled {
+          opacity: .6;
+          cursor: wait;
         }
         .profile-secondary:hover,
         .profile-upload-btn:hover,

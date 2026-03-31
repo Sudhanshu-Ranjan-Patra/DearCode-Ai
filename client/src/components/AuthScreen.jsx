@@ -243,7 +243,7 @@ export default function AuthScreen({
       <section className="auth-panel">
         <div className="auth-copy">
           <span className="auth-badge">DearCode AI</span>
-          <h1>Private companion chats, now with real accounts.</h1>
+          <h1>Your private AI companions, now personalized for you.</h1>
           <p>
             Sign in to keep your conversations, memory, and companion context tied
             to your account instead of only a browser device id.
@@ -414,12 +414,13 @@ export default function AuthScreen({
           display: grid;
           place-items: center;
           padding: 32px;
+          font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
           background:
             radial-gradient(circle at top left, rgba(124,106,247,.22), transparent 32%),
             radial-gradient(circle at bottom right, rgba(56,232,198,.16), transparent 28%),
             linear-gradient(135deg, #09090f 0%, #12121b 45%, #0b0b12 100%);
           position: relative;
-          overflow: hidden;
+          overflow-y: auto;
         }
 
         .auth-ambient {
@@ -493,18 +494,24 @@ export default function AuthScreen({
         }
 
         .auth-copy h1 {
-          max-width: 12ch;
+          max-width: 45ch;
           margin-top: 22px;
-          font-size: clamp(2.8rem, 5vw, 4.5rem);
-          line-height: .95;
-          color: #fafafa;
+          font-size: clamp(2.4rem, 4vw, 3.8rem);
+          line-height: 1.15;
+          font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          color: #ffffff;
+          text-transform: none;
+          margin-bottom: 16px;
         }
 
         .auth-copy p {
-          max-width: 38rem;
-          margin-top: 18px;
+          max-width: 42rem;
+          margin-top: 8px;
           font-size: 1rem;
-          color: #b4b4c8;
+          color: #d7d7e8;
+          line-height: 1.6;
         }
 
         .auth-highlights {
@@ -735,6 +742,126 @@ export default function AuthScreen({
           .auth-card {
             padding: 22px;
             border-radius: 22px;
+          }
+
+          .auth-field input {
+            padding: 16px;
+            font-size: 16px;
+          }
+
+          .auth-submit {
+            padding: 16px;
+            font-size: 16px;
+          }
+
+          .auth-tabs button {
+            padding: 14px 16px;
+            font-size: 16px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .auth-shell {
+            padding: 12px;
+          }
+
+          .auth-panel {
+            gap: 16px;
+          }
+
+          .auth-copy,
+          .auth-card {
+            padding: 18px;
+            border-radius: 18px;
+          }
+
+          .auth-copy h1 {
+            font-size: clamp(1.8rem, 12vw, 2.5rem);
+          }
+
+          .auth-copy p {
+            font-size: 0.9rem;
+          }
+
+          .auth-highlights {
+            gap: 10px;
+          }
+
+          .auth-highlight {
+            padding: 14px 16px;
+          }
+
+          .auth-form {
+            gap: 14px;
+            margin-top: 18px;
+          }
+
+          .auth-field input {
+            padding: 14px 16px;
+          }
+
+          .auth-submit {
+            padding: 14px 16px;
+          }
+
+          .auth-tabs button {
+            padding: 12px 14px;
+          }
+
+          .auth-ambient-a {
+            width: 200px;
+            height: 200px;
+            top: -40px;
+            right: -30px;
+          }
+
+          .auth-ambient-b {
+            width: 180px;
+            height: 180px;
+            bottom: -30px;
+            left: -20px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .auth-shell {
+            padding: 8px;
+          }
+
+          .auth-copy,
+          .auth-card {
+            padding: 14px;
+            border-radius: 14px;
+          }
+
+          .auth-copy h1 {
+            font-size: clamp(1.5rem, 14vw, 2rem);
+          }
+
+          .auth-copy p {
+            font-size: 0.85rem;
+          }
+
+          .auth-highlight {
+            padding: 12px 14px;
+          }
+
+          .auth-field input {
+            padding: 12px 14px;
+          }
+
+          .auth-submit {
+            padding: 12px 14px;
+          }
+
+          .auth-tabs button {
+            padding: 10px 12px;
+            font-size: 14px;
+          }
+
+          .auth-ambient-a,
+          .auth-ambient-b {
+            display: none;
           }
         }
       `}</style>
