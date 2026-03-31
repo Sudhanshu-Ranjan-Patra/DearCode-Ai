@@ -9,14 +9,14 @@ import { useState } from "react";
  *  content     string  (supports **bold**, `code`, ```fences```)
  *  timestamp   Date | string
  *  isStreaming boolean  (shows blinking cursor on last assistant bubble)
- *  model       string   (e.g. "Gemini 2.0 Flash")
+ *  label       string   (e.g. "Girlfriend")
  */
 export default function MessageBubble({
   role = "assistant",
   content = "",
   timestamp,
   isStreaming = false,
-  model = "",
+  label = "",
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -93,7 +93,7 @@ export default function MessageBubble({
         {/* Header (assistant only) */}
         {role === "assistant" && (
           <div className="bubble-header">
-            <span className="bubble-model">{model || "AI"}</span>
+            <span className="bubble-model">{label || "DearCode AI"}</span>
             {time && <span className="bubble-time">{time}</span>}
             <button
               className={`copy-btn ${copied ? "copied" : ""}`}

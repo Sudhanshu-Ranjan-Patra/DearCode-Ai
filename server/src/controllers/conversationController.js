@@ -3,11 +3,20 @@
 
 import * as svc from "../services/conversationService.js";
 
+function getOwnerContext(req) {
+  return {
+    userId: req.user?._id ?? null,
+    deviceId: req.query.deviceId || req.body?.deviceId || null,
+  };
+}
+
 // GET /api/conversations
 export async function listConversations(req, res, next) {
   try {
     const userId = req.user?._id ?? null;          // null until auth added
-    const convs  = await svc.getAllConversations(userId);
+    const deviceId = req.query.deviceId || null;
+    const character = req.query.character || "girlfriend";
+    const convs  = await svc.getAllConversations(deviceId, character, userId);
     res.json({ conversations: convs });
   } catch (err) { next(err); }
 }
@@ -15,10 +24,15 @@ export async function listConversations(req, res, next) {
 // POST /api/conversations
 export async function createConversation(req, res, next) {
   try {
-    const { title, model } = req.body;
+    const { title, model, deviceId, character } = req.body;
+    if (!req.user && !deviceId) {
+      return res.status(400).json({ error: "deviceId is required for guest conversations" });
+    }
     const conv = await svc.createConversation({
       title,
       model,
+      deviceId,
+      character,
       userId: req.user?._id ?? null,
     });
     res.status(201).json({ conversation: conv });
@@ -28,7 +42,7 @@ export async function createConversation(req, res, next) {
 // GET /api/conversations/:id
 export async function getConversation(req, res, next) {
   try {
-    const conv = await svc.getConversationById(req.params.id);
+    const conv = await svc.getConversationById(req.params.id, getOwnerContext(req));
     res.json({ conversation: conv });
   } catch (err) {
     if (err.message === "Conversation not found") return res.status(404).json({ error: err.message });
@@ -39,7 +53,7 @@ export async function getConversation(req, res, next) {
 // GET /api/conversations/:id/messages
 export async function getMessages(req, res, next) {
   try {
-    const messages = await svc.getMessages(req.params.id);
+    const messages = await svc.getMessages(req.params.id, getOwnerContext(req));
     res.json({ messages });
   } catch (err) {
     if (err.message === "Conversation not found") return res.status(404).json({ error: err.message });
@@ -50,7 +64,7 @@ export async function getMessages(req, res, next) {
 // PATCH /api/conversations/:id
 export async function updateConversation(req, res, next) {
   try {
-    const conv = await svc.updateConversation(req.params.id, req.body);
+    const conv = await svc.updateConversation(req.params.id, req.body, getOwnerContext(req));
     res.json({ conversation: conv });
   } catch (err) {
     if (err.message === "Conversation not found") return res.status(404).json({ error: err.message });
@@ -61,7 +75,7 @@ export async function updateConversation(req, res, next) {
 // DELETE /api/conversations/:id
 export async function deleteConversation(req, res, next) {
   try {
-    await svc.deleteConversation(req.params.id);
+    await svc.deleteConversation(req.params.id, getOwnerContext(req));
     res.status(204).end();
   } catch (err) {
     if (err.message === "Conversation not found") return res.status(404).json({ error: err.message });

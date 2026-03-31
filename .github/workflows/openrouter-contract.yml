@@ -1,0 +1,41 @@
+name: OpenRouter Contract
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: openrouter-contract
+  cancel-in-progress: false
+
+jobs:
+  contract-test:
+    if: ${{ secrets.OPENROUTER_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    env:
+      NODE_ENV: test
+      CLIENT_URL: https://example.com
+      AUTH_SESSION_SECRET: contract-test-session-secret-1234567890
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_CONTRACT_MODEL: ${{ vars.OPENROUTER_CONTRACT_MODEL }}
+      RUN_OPENROUTER_CONTRACT_TESTS: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run server test suite with OpenRouter contract coverage
+        run: npm test

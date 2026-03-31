@@ -1,5 +1,5 @@
 // components/Sidebar.jsx
-// Multi-chat sidebar: new chat button, chat history list, model badge, user profile
+// Multi-chat sidebar: new chat button, chat history list, user profile
 
 /**
  * Props:
@@ -8,7 +8,6 @@
  *  onNewChat    () => void
  *  onSelectChat (id) => void
  *  onDeleteChat (id) => void
- *  model        string
  *  isOpen       boolean
  */
 
@@ -18,8 +17,8 @@ export default function Sidebar({
   onNewChat,
   onSelectChat,
   onDeleteChat,
-  model = "Gemini 2.0 Flash",
   isOpen = true,
+  user = null,
 }) {
   const grouped = groupByDate(chats);
 
@@ -27,9 +26,9 @@ export default function Sidebar({
     <aside className={`sidebar ${isOpen ? "open" : "closed"}`}>
       {/* ── Brand ── */}
       <div className="sidebar-brand">
-        <div className="brand-logo">💬</div>
+        <div className="brand-logo">∆</div>
         <div className="brand-text">
-          <span className="brand-name">Messages</span>
+          <span className="brand-name">DearCode Ai</span>
           <span className="brand-tag">Online</span>
         </div>
       </div>
@@ -48,7 +47,7 @@ export default function Sidebar({
       <div className="history-scroll">
         {chats.length === 0 ? (
           <div className="empty-history">
-            <div className="empty-history-icon">💬</div>
+            <div className="empty-history-icon">∆</div>
             <p>No conversations yet.<br />Start a new chat!</p>
           </div>
         ) : (
@@ -71,9 +70,7 @@ export default function Sidebar({
 
       {/* ── Footer ── */}
       <div className="sidebar-footer">
-        <ModelBadge model={model} />
-        <div className="divider" />
-        <UserProfile />
+        <UserProfile user={user} />
       </div>
 
       <style>{`
@@ -180,7 +177,6 @@ export default function Sidebar({
 
         /* Footer */
         .sidebar-footer { padding: 10px; flex-shrink: 0; }
-        .divider { height: 1px; background: #1e1e2e; margin: 8px 0; }
       `}</style>
     </aside>
   );
@@ -253,59 +249,25 @@ function ChatHistoryItem({ chat, isActive, onSelect, onDelete }) {
   );
 }
 
-function ModelBadge({ model }) {
-  return (
-    <div className="model-badge">
-      <span className="model-pulse" />
-      <div>
-        <div className="model-name">Connected</div>
-        <div className="model-via">Secure connection</div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-        stroke="#3a3a5a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        style={{ marginLeft: "auto" }}>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
-      </svg>
-      <style>{`
-        .model-badge {
-          display: flex; align-items: center; gap: 9px;
-          padding: 9px 10px; border-radius: 10px;
-          background: #13131e; border: 1px solid #1e1e2e;
-        }
-        .model-pulse {
-          width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-          background: #38e8c6; box-shadow: 0 0 8px #38e8c6;
-          animation: mbPulse 2s ease-in-out infinite;
-        }
-        @keyframes mbPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-        .model-name { font-size: 11.5px; font-weight: 700; color: #c4bbff; }
-        .model-via  { font-size: 9px; color: #3a3a5a; font-family: 'JetBrains Mono', monospace; }
-      `}</style>
-    </div>
-  );
-}
-
-function UserProfile() {
+function UserProfile({ user }) {
   return (
     <div className="user-profile">
-      <div className="user-avatar">D</div>
-      <div>
-        <div className="user-name">Developer</div>
-        <div className="user-plan">Free Plan</div>
+      <div className="user-avatar">
+        {user?.avatarDataUrl ? (
+          <img src={user.avatarDataUrl} alt={user?.name || "User"} />
+        ) : (
+          (user?.name || "U").slice(0, 1).toUpperCase()
+        )}
       </div>
-      <button className="settings-btn" title="Settings">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
-      </button>
+      <div>
+        <div className="user-name">{user?.name || "User"}</div>
+        <div className="user-plan">{user?.mood || user?.email || "Account connected"}</div>
+      </div>
       <style>{`
         .user-profile {
           display: flex; align-items: center; gap: 9px;
           padding: 8px 10px; border-radius: 10px;
-          cursor: pointer; transition: background .15s;
+          transition: background .15s;
         }
         .user-profile:hover { background: #13131e; }
         .user-avatar {
@@ -313,16 +275,15 @@ function UserProfile() {
           background: linear-gradient(135deg, #7c6af7, #5b4ee0);
           display: flex; align-items: center; justify-content: center;
           font-size: 13px; font-weight: 800; color: #fff;
+          overflow: hidden;
+        }
+        .user-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
         .user-name { font-size: 12px; font-weight: 700; color: #c4bbff; }
         .user-plan { font-size: 10px; color: #3a3a5a; font-family: 'JetBrains Mono', monospace; }
-        .settings-btn {
-          margin-left: auto; background: none; border: none;
-          color: #3a3a5a; cursor: pointer; padding: 4px;
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 6px; transition: color .15s, background .15s;
-        }
-        .settings-btn:hover { color: #7c6af7; background: rgba(124,106,247,.1); }
       `}</style>
     </div>
   );

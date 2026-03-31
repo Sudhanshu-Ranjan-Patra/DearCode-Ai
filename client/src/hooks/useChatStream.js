@@ -4,7 +4,15 @@
 
 import { useState, useRef, useCallback } from "react";
 import { chatService } from "../services/chatService";
-import { loadGlobalMemory, saveGlobalMemory, updateMemoryFromMessage, getDeviceId } from "../utils/memory";
+import { authService } from "../services/authService";
+import {
+  getDeviceId,
+  getMemoryOwnerKey,
+  loadGlobalMemory,
+  saveGlobalMemory,
+  updateMemoryFromMessage,
+} from "../utils/memory";
+import { useAuthStore } from "../store/authStore";
 import { useChatStore } from "../store/chatStore";
 
 /**
@@ -18,7 +26,7 @@ import { useChatStore } from "../store/chatStore";
  *  clearMessages () => void
  *  setMessages   setter
  */
-export function useChatStream(model = "google/gemini-2.0-flash-001") {
+export function useChatStream() {
   const [messages, setMessages]     = useState([]);
   const [streamText, setStreamText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -65,9 +73,14 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
         }));
 
       // 3. Update global local storage memory
-      const currentMemory = loadGlobalMemory();
+      const currentUser = useAuthStore.getState().user;
+      const ownerKey = getMemoryOwnerKey(currentUser);
+      const currentMemory =
+        useAuthStore.getState().globalMemory ||
+        loadGlobalMemory(ownerKey);
       const updatedMemory = updateMemoryFromMessage(text, currentMemory);
-      saveGlobalMemory(updatedMemory);
+      saveGlobalMemory(updatedMemory, ownerKey);
+      useAuthStore.getState().setGlobalMemory(updatedMemory);
       
       const deviceId = getDeviceId();
 
@@ -82,7 +95,6 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
         await chatService.streamChat(
           {
             messages: history,
-            model,
             chatId,
             globalMemory: updatedMemory,
             deviceId,
@@ -95,6 +107,22 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
           },
           abortCtrlRef.current.signal
         );
+
+        if (currentUser?._id) {
+          try {
+            const response = await authService.syncMemory({
+              deviceId,
+              globalMemory: updatedMemory,
+            });
+            if (response?.memory) {
+              const syncedMemory = { ...updatedMemory, ...response.memory };
+              saveGlobalMemory(syncedMemory, ownerKey);
+              useAuthStore.getState().setGlobalMemory(syncedMemory);
+            }
+          } catch (syncErr) {
+            console.error("[useChatStream] memory sync error:", syncErr);
+          }
+        }
 
         // 4. Commit streamed response as a final message
         const assistantMsg = {
@@ -128,7 +156,7 @@ export function useChatStream(model = "google/gemini-2.0-flash-001") {
         setIsStreaming(false);
       }
     },
-    [messages, isStreaming, model]
+    [messages, isStreaming]
   );
 
   return {

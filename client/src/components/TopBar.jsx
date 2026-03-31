@@ -1,44 +1,49 @@
 // components/TopBar.jsx
-// App header: sidebar toggle, chat title, streaming indicator, model selector, theme toggle
+// App header: sidebar toggle, chat title, streaming indicator, character picker, account actions
 
 import { useState } from "react";
 
-const MODELS = [
-  { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash", tag: "Free" },
-  { id: "x-ai/grok-beta",                  label: "Grok Beta",         tag: "Fast" },
-  { id: "anthropic/claude-3-haiku",         label: "Claude Haiku",      tag: "Smart" },
-  { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Llama 3.1 8B", tag: "Free" },
+const CHARACTERS = [
+  { id: "girlfriend", icon: "", label: "Girlfriend" },
+  { id: "bestfriend", icon: "", label: "Best Friend" },
+  { id: "motivator", icon: "", label: "Mentor" },
 ];
 
-const CHARACTERS = [
-  { id: "girlfriend", icon: "❤️", label: "Girlfriend" },
-  { id: "bestfriend", icon: "🤝", label: "Best Friend" },
-  { id: "motivator", icon: "🚀", label: "Motivator" },
-];
+const CHARACTER_AVATARS = {
+  girlfriend: { accent: "linear-gradient(135deg, #ff8fb7, #ff5f9e)", badge: "G" },
+  bestfriend: { accent: "linear-gradient(135deg, #5ea2ff, #38e8c6)", badge: "F" },
+  motivator: { accent: "linear-gradient(135deg, #ffb347, #ff6b2c)", badge: "M" },
+};
 
 /**
  * Props:
  *  chatTitle    string
  *  isStreaming  boolean
- *  model        string  (model id)
  *  selectedCharacter string
  *  onCharacterChange (charId: string) => void
- *  onModelChange (modelId: string) => void
  *  onToggleSidebar () => void
  *  onNewChat    () => void
  */
 export default function TopBar({
   chatTitle = "New Chat",
   isStreaming = false,
-  model = MODELS[0].id,
   selectedCharacter = "girlfriend",
   onCharacterChange,
-  onModelChange,
   onToggleSidebar,
   onNewChat,
+  user,
+  onLogout,
+  loggingOut = false,
+  sessionNotice = null,
+  onDismissSessionNotice = () => {},
+  personaProfiles = {},
+  onOpenPersonaSettings,
+  onOpenProfileSettings,
 }) {
-  const [modelOpen, setModelOpen] = useState(false);
-  const current = MODELS.find((m) => m.id === model) || MODELS[0];
+  const [characterOpen, setCharacterOpen] = useState(false);
+  const currentChar = CHARACTERS.find((c) => c.id === selectedCharacter) || CHARACTERS[0];
+  const currentName = personaProfiles[selectedCharacter]?.agentName || currentChar.label;
+  const currentAvatar = CHARACTER_AVATARS[selectedCharacter] || CHARACTER_AVATARS.girlfriend;
 
   return (
     <header className="topbar">
@@ -51,7 +56,18 @@ export default function TopBar({
       </button>
 
       {/* Title */}
-      <h1 className="topbar-title">{chatTitle}</h1>
+      <div className="topbar-title persona-header-chip" title={chatTitle}>
+        <div
+          className="persona-avatar"
+          style={{ background: currentAvatar.accent }}
+        >
+          {currentAvatar.badge}
+        </div>
+        <div className="persona-header-copy">
+          <span className="persona-header-name">{currentName}</span>
+          <span className="persona-header-role">{currentChar.label}</span>
+        </div>
+      </div>
 
       {/* Streaming pill */}
       {isStreaming && (
@@ -61,48 +77,54 @@ export default function TopBar({
         </div>
       )}
 
-      {/* Center: Character Switcher */}
-      <div className="topbar-center">
-        <div className="character-switch">
-          {CHARACTERS.map(c => (
-            <button
-              key={c.id}
-              className={`char-tab ${c.id === selectedCharacter ? "active" : ""}`}
-              onClick={() => onCharacterChange?.(c.id)}
-            >
-              <span className="char-icon">{c.icon}</span>
-              <span className="char-label">{c.label}</span>
-            </button>
-          ))}
+      {sessionNotice?.message && !isStreaming && (
+        <div className={`stream-pill auth-status-pill ${sessionNotice.tone || "info"}`}>
+          <span className="stream-dot" />
+          <span className="auth-status-copy">{sessionNotice.message}</span>
+          <button
+            type="button"
+            className="auth-status-dismiss"
+            onClick={onDismissSessionNotice}
+            title="Dismiss notice"
+          >
+            ×
+          </button>
         </div>
+      )}
+
+      {/* Center: Currently empty */}
+      <div className="topbar-center">
       </div>
 
-      {/* Right: model picker + new chat */}
+      {/* Right: character picker + new chat + account */}
       <div className="topbar-right">
-        {/* Model selector */}
-        <div className="model-selector" onClick={() => setModelOpen((p) => !p)}>
+        {/* Character selector dropdown */}
+        <div className="model-selector" onClick={() => setCharacterOpen((p) => !p)}>
           <span className="model-live-dot" />
-          <span className="model-label">{current.label}</span>
-          <span className="model-tag">{current.tag}</span>
+          <span className="model-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>{currentChar.icon}</span>
+            <span>{currentChar.label}</span>
+          </span>
+          <span className="model-tag">{currentName}</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
             style={{ marginLeft: 4, opacity: .5, transition: "transform .2s",
-                     transform: modelOpen ? "rotate(180deg)" : "none" }}>
+                     transform: characterOpen ? "rotate(180deg)" : "none" }}>
             <path d="M6 9l6 6 6-6" />
           </svg>
 
-          {modelOpen && (
+          {characterOpen && (
             <div className="model-dropdown">
-              {MODELS.map((m) => (
+              {CHARACTERS.map((c) => (
                 <div
-                  key={m.id}
-                  className={`model-option ${m.id === model ? "selected" : ""}`}
-                  onClick={(e) => { e.stopPropagation(); onModelChange?.(m.id); setModelOpen(false); }}
+                  key={c.id}
+                  className={`model-option ${c.id === selectedCharacter ? "selected" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); onCharacterChange?.(c.id); setCharacterOpen(false); }}
                 >
-                  <span className="opt-dot" />
-                  <span className="opt-label">{m.label}</span>
-                  <span className="opt-tag">{m.tag}</span>
-                  {m.id === model && (
+                  <span className="char-icon" style={{ fontSize: '14px', width: '20px', textAlign: 'center' }}>{c.icon}</span>
+                  <span className="opt-label">{c.label}</span>
+                  <span className="opt-tag">{personaProfiles[c.id]?.agentName || c.label}</span>
+                  {c.id === selectedCharacter && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                       stroke="#38e8c6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
@@ -121,6 +143,62 @@ export default function TopBar({
             <path d="M12 5v14M5 12h14" />
           </svg>
         </button>
+
+        <button
+          className="topbar-btn"
+          onClick={onOpenPersonaSettings}
+          title="Persona settings"
+          type="button"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6L12 3z" />
+            <circle cx="12" cy="12" r="2.2" />
+          </svg>
+        </button>
+
+        <div
+          className="account-chip"
+          title={user?.email || "Account"}
+          onClick={onOpenProfileSettings}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onOpenProfileSettings?.();
+            }
+          }}
+        >
+          <div className="account-avatar">
+            {user?.avatarDataUrl ? (
+              <img src={user.avatarDataUrl} alt={user?.name || "Account"} />
+            ) : (
+              (user?.name || "U").slice(0, 1).toUpperCase()
+            )}
+          </div>
+          <div className="account-copy">
+            <span className="account-name">{user?.name || "Account"}</span>
+            <span className="account-email">{user?.mood || user?.email || ""}</span>
+          </div>
+          <button
+            type="button"
+            className="account-logout"
+            onClick={(event) => {
+              event.stopPropagation();
+              onLogout?.();
+            }}
+            disabled={loggingOut}
+            title="Log out"
+          >
+            {loggingOut ? (
+              <>
+                <span className="logout-spinner" aria-hidden="true" />
+                <span>Signing out</span>
+              </>
+            ) : "Log out"}
+          </button>
+        </div>
       </div>
 
       <style>{`
@@ -151,9 +229,49 @@ export default function TopBar({
         }
 
         .topbar-title {
-          font-size: 13.5px; font-weight: 700; color: #e2e2f0;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           flex: 1;
+          min-width: 0;
+        }
+        .persona-header-chip {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .persona-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 14px;
+          font-weight: 800;
+          box-shadow: 0 8px 18px rgba(0,0,0,.22);
+          flex-shrink: 0;
+        }
+        .persona-header-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .persona-header-name,
+        .persona-header-role {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .persona-header-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #e7e7f4;
+        }
+        .persona-header-role {
+          font-size: 10px;
+          color: #7f819f;
+          font-family: 'JetBrains Mono', monospace;
         }
 
         .stream-pill {
@@ -164,6 +282,36 @@ export default function TopBar({
           font-size: 11px; font-family: 'JetBrains Mono', monospace;
           color: #38e8c6; white-space: nowrap;
           animation: slideIn .25s ease;
+        }
+        .auth-status-pill {
+          max-width: 320px;
+        }
+        .auth-status-copy {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .auth-status-pill.success {
+          background: rgba(56,232,198,.07);
+          border-color: rgba(56,232,198,.2);
+          color: #38e8c6;
+        }
+        .auth-status-pill.info {
+          background: rgba(124,106,247,.1);
+          border-color: rgba(124,106,247,.22);
+          color: #cfc9ff;
+        }
+        .auth-status-dismiss {
+          border: none;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
+          font-size: 14px;
+          line-height: 1;
+          opacity: .72;
+          padding: 0;
+        }
+        .auth-status-dismiss:hover {
+          opacity: 1;
         }
         @keyframes slideIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
         .stream-dot {
@@ -260,6 +408,99 @@ export default function TopBar({
           font-size: 9px; font-family: 'JetBrains Mono', monospace;
           background: #0f0f18; border: 1px solid #1e1e2e;
           border-radius: 99px; padding: 1px 6px; color: #5a5a7a;
+        }
+
+        .account-chip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 5px 6px 5px 5px;
+          border-radius: 12px;
+          background: #13131e;
+          border: 1px solid #1e1e2e;
+          max-width: 280px;
+          cursor: pointer;
+        }
+        .account-avatar {
+          width: 30px;
+          height: 30px;
+          border-radius: 9px;
+          background: linear-gradient(135deg, #7c6af7, #38e8c6);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 800;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        .account-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .account-copy {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .account-name,
+        .account-email {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .account-name {
+          font-size: 11px;
+          color: #e2e2f0;
+          font-weight: 700;
+        }
+        .account-email {
+          font-size: 9px;
+          color: #6d6d88;
+          font-family: 'JetBrains Mono', monospace;
+        }
+        .account-logout {
+          border: 1px solid #2a2a3e;
+          background: #0f0f18;
+          color: #b7b7c9;
+          border-radius: 9px;
+          padding: 7px 10px;
+          font-size: 11px;
+          cursor: pointer;
+          transition: all .15s;
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .account-logout:hover:not(:disabled) {
+          color: #fff;
+          border-color: #7c6af7;
+        }
+        .account-logout:disabled {
+          opacity: .6;
+          cursor: wait;
+        }
+        .logout-spinner {
+          width: 12px;
+          height: 12px;
+          border-radius: 999px;
+          border: 2px solid rgba(228,228,231,.18);
+          border-top-color: #e4e4e7;
+          animation: spinOut .7s linear infinite;
+        }
+        @keyframes spinOut {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 860px) {
+          .persona-header-role { display: none; }
+          .account-copy { display: none; }
+          .account-chip {
+            max-width: none;
+          }
         }
       `}</style>
     </header>

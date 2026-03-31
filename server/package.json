@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "lint": "eslint src --ext .js"
+    "lint": "eslint src --ext .js",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,11 +18,14 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
     "mongoose": "^8.5.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "nodemailer": "^8.0.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "eslint": "^9.9.0"
+    "eslint": "^9.9.0",
+    "mongodb-memory-server": "^11.0.1",
+    "supertest": "^7.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

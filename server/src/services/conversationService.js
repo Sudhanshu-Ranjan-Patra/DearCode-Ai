@@ -4,30 +4,46 @@
 import Conversation from "../models/Conversation.js";
 import { generateTitle } from "./aiService.js";
 
+export function buildOwnerQuery({ id, userId = null, deviceId = null } = {}) {
+  const query = {};
+  if (id) query._id = id;
+
+  if (userId) {
+    query.userId = userId;
+  } else {
+    query.userId = null;
+    query.deviceId = deviceId;
+  }
+
+  return query;
+}
+
 // ── Create ────────────────────────────────────────────────────────────────────
 
-export async function createConversation({ title, model, userId } = {}) {
+export async function createConversation({ title, model, userId, deviceId, character } = {}) {
   return Conversation.create({
     title:  title || "New Chat",
     model:  model || "meta-llama/llama-3.1-8b-instruct:free",
     userId: userId || null,
+    deviceId: deviceId || null,
+    character: character || "girlfriend",
   });
 }
 
 // ── Read ──────────────────────────────────────────────────────────────────────
 
-export async function getAllConversations(userId = null) {
-  return Conversation.getRecent(userId);
+export async function getAllConversations(deviceId, character, userId = null) {
+  return Conversation.getRecent(deviceId, character, userId);
 }
 
-export async function getConversationById(id) {
-  const conv = await Conversation.findById(id).lean();
+export async function getConversationById(id, owner = {}) {
+  const conv = await Conversation.findOne(buildOwnerQuery({ id, ...owner })).lean();
   if (!conv) throw new Error("Conversation not found");
   return conv;
 }
 
-export async function getMessages(conversationId) {
-  const conv = await Conversation.findById(conversationId)
+export async function getMessages(conversationId, owner = {}) {
+  const conv = await Conversation.findOne(buildOwnerQuery({ id: conversationId, ...owner }))
     .select("messages")
     .lean();
   if (!conv) throw new Error("Conversation not found");
@@ -36,12 +52,12 @@ export async function getMessages(conversationId) {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
-export async function updateConversation(id, updates) {
+export async function updateConversation(id, updates, owner = {}) {
   const allowed = ["title", "model", "archived"];
   const safe    = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowed.includes(k))
   );
-  const conv = await Conversation.findByIdAndUpdate(id, safe, {
+  const conv = await Conversation.findOneAndUpdate(buildOwnerQuery({ id, ...owner }), safe, {
     new:              true,
     runValidators:    true,
   }).select("title model updatedAt");
@@ -51,8 +67,8 @@ export async function updateConversation(id, updates) {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
-export async function deleteConversation(id) {
-  const conv = await Conversation.findByIdAndDelete(id);
+export async function deleteConversation(id, owner = {}) {
+  const conv = await Conversation.findOneAndDelete(buildOwnerQuery({ id, ...owner }));
   if (!conv) throw new Error("Conversation not found");
   return { deleted: true };
 }

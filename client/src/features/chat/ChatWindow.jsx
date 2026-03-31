@@ -1,18 +1,45 @@
 // features/chat/ChatWindow.jsx
 // Orchestrates the full chat view: message list + input + empty state
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import MessageBubble from "../../components/MessageBubble";
 import ChatInput from "../../components/ChatInput";
 
-const PROMPT_CHIPS = [
-  "How do I set up SSE streaming with Express?",
-  "Write a Mongoose schema for chat history",
-  "OpenRouter API integration example",
-  "Zustand store for multi-chat state",
-  "Rate limiting middleware with express-rate-limit",
-  "React custom hook for streaming responses",
-];
+const EMPTY_STATE_COPY = {
+  girlfriend: {
+    eyebrow: "Companion Workspace",
+    title: "Start a thoughtful conversation",
+    description: "Talk naturally, ask for perspective, or pick a prompt to begin without the interface feeling scripted.",
+    chips: [
+      "How was your day?",
+      "I need emotional clarity",
+      "Can we talk something through?",
+      "Give me your honest take",
+    ],
+  },
+  bestfriend: {
+    eyebrow: "Friend Chat",
+    title: "Pick up the conversation",
+    description: "Keep it casual, ask for advice, or use a starter that feels more like a real back-and-forth.",
+    chips: [
+      "Bro, I need advice",
+      "Tell me the truth straight",
+      "Help me decide this",
+      "I need to vent for a minute",
+    ],
+  },
+  motivator: {
+    eyebrow: "Focus Desk",
+    title: "Open a focused session",
+    description: "Use this space for planning, accountability, or direct guidance on what to do next.",
+    chips: [
+      "Plan my next 3 hours",
+      "Push me to focus",
+      "Break this goal into steps",
+      "What should I prioritize today?",
+    ],
+  },
+};
 
 /**
  * Props:
@@ -20,7 +47,7 @@ const PROMPT_CHIPS = [
  *  streamText    string   (current streaming token buffer)
  *  isStreaming   boolean
  *  inputValue    string
- *  model         string
+ *  assistantLabel string
  *  onInputChange (val) => void
  *  onSend        () => void
  *  onStop        () => void
@@ -31,11 +58,20 @@ export default function ChatWindow({
   streamText = "",
   isStreaming = false,
   inputValue = "",
-  model = "Gemini 2.0 Flash",
+  assistantLabel = "DearCode AI",
   onInputChange,
   onSend,
   onStop,
   onChipClick,
+  onAttachFiles,
+  attachments = [],
+  onRemoveAttachment,
+  canRecallLast = false,
+  onRecallLast,
+  isRecallingLast = false,
+  onCancelRecall,
+  canSend = false,
+  selectedCharacter = "girlfriend",
 }) {
   const bottomRef = useRef(null);
 
@@ -50,7 +86,11 @@ export default function ChatWindow({
     <div className="chat-window">
       {/* ── Messages or empty state ── */}
       {isEmpty ? (
-        <EmptyState onChipClick={onChipClick} />
+        <EmptyState
+          assistantLabel={assistantLabel}
+          selectedCharacter={selectedCharacter}
+          onChipClick={onChipClick}
+        />
       ) : (
         <div className="messages-list">
           <div className="messages-inner">
@@ -60,7 +100,7 @@ export default function ChatWindow({
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.timestamp}
-                model={model}
+                label={assistantLabel}
                 isStreaming={false}
               />
             ))}
@@ -71,7 +111,7 @@ export default function ChatWindow({
                 <MessageBubble
                   role="assistant"
                   content={streamText}
-                  model={model}
+                  label={assistantLabel}
                   isStreaming
                 />
               ) : (
@@ -98,6 +138,14 @@ export default function ChatWindow({
             onSend={onSend}
             onStop={onStop}
             isStreaming={isStreaming}
+            onAttachFiles={onAttachFiles}
+            attachments={attachments}
+            onRemoveAttachment={onRemoveAttachment}
+            canRecallLast={canRecallLast}
+            onRecallLast={onRecallLast}
+            isRecallingLast={isRecallingLast}
+            onCancelRecall={onCancelRecall}
+            canSend={canSend}
           />
         </div>
       </div>
@@ -167,64 +215,122 @@ export default function ChatWindow({
 }
 
 // ── Empty / Welcome state ────────────────────────────────────────────────────
-function EmptyState({ onChipClick }) {
-  const [stage, setStage] = useState("typing");
-
-  useEffect(() => {
-    // Simulate natural human delay
-    const timer = setTimeout(() => setStage("ready"), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+function EmptyState({ selectedCharacter, onChipClick }) {
+  const copy = EMPTY_STATE_COPY[selectedCharacter] || EMPTY_STATE_COPY.girlfriend;
 
   return (
     <div className="messages-list">
-      <div className="messages-inner">
-        {stage === "typing" ? (
-          <div className="typing-indicator-container">
-            <div className="typing-dot"></div>
-            <div className="typing-dot"></div>
-            <div className="typing-dot"></div>
+      <div className="messages-inner empty-state-shell">
+        <div className="empty-state-board">
+          <div className="empty-state-copy">
+            <div className="empty-state-eyebrow">{copy.eyebrow}</div>
+            <h2>{copy.title}</h2>
+            <p>{copy.description}</p>
           </div>
-        ) : (
-          <div className="human-welcome-fade">
-            <MessageBubble
-              role="assistant"
-              content="hey… tum aa gaye? 👀"
-              isStreaming={false}
-            />
-            
-            <div className="human-chips">
-              <button className="h-chip" onClick={() => onChipClick?.("kya kar rahe ho?")}>kya kar rahe ho?</button>
-              <button className="h-chip" onClick={() => onChipClick?.("bore ho rahe ho kya?")}>bore ho rahe ho kya?</button>
-              <button className="h-chip" onClick={() => onChipClick?.("baat karein?")}>baat karein?</button>
-            </div>
+
+          <div className="empty-state-tip">
+            Start with a natural message, or use one of the quick prompts.
           </div>
-        )}
+
+          <div className="empty-state-chips">
+            {copy.chips.map((chip) => (
+              <button
+                key={chip}
+                className="empty-chip"
+                onClick={() => onChipClick?.(chip)}
+                type="button"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <style>{`
-        .human-welcome-fade {
-          animation: hFadeIn .4s ease forwards;
+        .empty-state-shell {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          padding: 28px 20px 12px;
         }
-        @keyframes hFadeIn {
+        .empty-state-board {
+          width: min(760px, 100%);
+          margin: 0 auto;
+          padding: 8px 6px;
+          animation: emptyFade .24s ease;
+        }
+        @keyframes emptyFade {
           from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: none; }
+          to { opacity: 1; transform: none; }
         }
-
-        .human-chips {
-          display: flex; flex-wrap: wrap; gap: 8px;
-          margin-top: 12px; margin-left: 48px;
+        .empty-state-copy {
+          max-width: 620px;
         }
-        .h-chip {
-          padding: 8px 16px; border-radius: 20px;
-          background: #27272a; border: 1px solid #3f3f46;
-          color: #d4d4d8; font-size: 13.5px;
-          cursor: pointer; transition: all .2s;
-          font-family: inherit;
+        .empty-state-eyebrow {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: .12em;
+          text-transform: uppercase;
+          color: #7ff3de;
+          font-family: 'Syne', sans-serif;
         }
-        .h-chip:hover {
-          background: #3f3f46; border-color: #525252;
-          color: #f4f4f5; transform: translateY(-1px);
+        .empty-state-copy h2 {
+          margin-top: 14px;
+          font-size: clamp(1.45rem, 3vw, 1.95rem);
+          color: #f5f5fa;
+          line-height: 1.12;
+          font-weight: 700;
+        }
+        .empty-state-copy p {
+          margin-top: 12px;
+          color: #a5a6b8;
+          font-size: 14px;
+          line-height: 1.65;
+        }
+        .empty-state-tip {
+          margin-top: 18px;
+          font-size: 13px;
+          line-height: 1.6;
+          color: #8f91a8;
+        }
+        .empty-state-chips {
+          margin-top: 18px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .empty-chip {
+          padding: 11px 16px;
+          border-radius: 999px;
+          border: 1px solid #343548;
+          background: rgba(20,20,29,.72);
+          color: #d7d8e6;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: transform .16s ease, border-color .16s ease, background .16s ease;
+          font-family: 'Syne', sans-serif;
+        }
+        .empty-chip:hover {
+          transform: translateY(-1px);
+          border-color: rgba(56,232,198,.38);
+          background: rgba(56,232,198,.06);
+          color: #f8fffe;
+        }
+        @media (max-width: 640px) {
+          .empty-state-shell {
+            padding-top: 18px;
+          }
+          .empty-state-copy h2 {
+            font-size: 1.5rem;
+          }
+          .empty-state-chips {
+            flex-direction: column;
+          }
+          .empty-chip {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

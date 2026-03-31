@@ -56,6 +56,14 @@ const ConversationSchema = new mongoose.Schema(
       default: null,
     },
 
+    // tie to device & character (multi-agent isolation)
+    deviceId: { type: String, default: "legacy_device" },
+    character: { 
+      type: String, 
+      enum: ["girlfriend", "bestfriend", "motivator"], 
+      default: "girlfriend" 
+    },
+
     // soft-delete flag
     archived: { type: Boolean, default: false },
   },
@@ -66,6 +74,7 @@ const ConversationSchema = new mongoose.Schema(
 );
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
+ConversationSchema.index({ deviceId: 1, character: 1, updatedAt: -1 });
 ConversationSchema.index({ userId: 1, updatedAt: -1 });
 ConversationSchema.index({ archived: 1 });
 
@@ -96,11 +105,14 @@ ConversationSchema.methods.autoTitle = function () {
 
 // ── Static helpers ────────────────────────────────────────────────────────────
 
-/** Get recent conversations (no messages, just metadata) */
-ConversationSchema.statics.getRecent = function (userId = null, limit = 50) {
-  const query = userId ? { userId, archived: false } : { archived: false };
+/** Get recent conversations strictly filtered by device and character */
+ConversationSchema.statics.getRecent = function (deviceId, character, userId = null, limit = 50) {
+  const query = { archived: false, character };
+  if (userId) query.userId = userId;
+  else query.deviceId = deviceId;
+
   return this.find(query)
-    .select("title model messageCount totalTokens createdAt updatedAt")
+    .select("title model messageCount totalTokens createdAt updatedAt character deviceId")
     .sort({ updatedAt: -1 })
     .limit(limit)
     .lean();

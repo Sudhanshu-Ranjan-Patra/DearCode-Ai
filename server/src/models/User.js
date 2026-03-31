@@ -22,6 +22,33 @@ const UserSchema = new mongoose.Schema(
       match:     [/^\S+@\S+\.\S+$/, "Invalid email address"],
     },
 
+    mood: {
+      type:      String,
+      trim:      true,
+      maxlength: 60,
+      default:   "",
+    },
+
+    bio: {
+      type:      String,
+      trim:      true,
+      maxlength: 280,
+      default:   "",
+    },
+
+    learningFocus: {
+      type:      String,
+      trim:      true,
+      maxlength: 120,
+      default:   "",
+    },
+
+    avatarDataUrl: {
+      type:      String,
+      default:   "",
+      maxlength: 3000000,
+    },
+
     password: {
       type:     String,
       required: [true, "Password is required"],
@@ -48,6 +75,8 @@ const UserSchema = new mongoose.Schema(
 
     resetPasswordToken:   { type: String,  select: false },
     resetPasswordExpires: { type: Date,    select: false },
+    failedLoginAttempts:  { type: Number,  default: 0, select: false },
+    lockUntil:            { type: Date,    default: null, select: false },
 
     isActive: { type: Boolean, default: true },
   },
@@ -56,9 +85,6 @@ const UserSchema = new mongoose.Schema(
     versionKey: false,
   }
 );
-
-// ── Indexes ───────────────────────────────────────────────────────────────────
-UserSchema.index({ email: 1 });
 
 // ── Hash password before save ─────────────────────────────────────────────────
 UserSchema.pre("save", async function (next) {

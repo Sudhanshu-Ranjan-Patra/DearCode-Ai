@@ -10,8 +10,17 @@ export default function ChatInput({
   onStop,
   isStreaming = false,
   disabled = false,
+  onAttachFiles,
+  attachments = [],
+  onRemoveAttachment,
+  canRecallLast = false,
+  onRecallLast,
+  isRecallingLast = false,
+  onCancelRecall,
+  canSend = false,
 }) {
   const taRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // auto-resize textarea
   useEffect(() => {
@@ -24,15 +33,72 @@ export default function ChatInput({
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!isStreaming && value.trim()) onSend();
+      if (!isStreaming && canSend) onSend();
+      return;
     }
+
+    if (
+      e.key === "ArrowUp" &&
+      !e.shiftKey &&
+      !value.trim() &&
+      canRecallLast
+    ) {
+      e.preventDefault();
+      onRecallLast?.();
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    const files = event.target.files;
+    if (files?.length) {
+      await onAttachFiles?.(files);
+    }
+    event.target.value = "";
   };
 
   return (
     <div className="chat-input-wrapper">
+      {(isRecallingLast || attachments.length > 0) && (
+        <div className="composer-meta">
+          {isRecallingLast && (
+            <button type="button" className="meta-pill" onClick={onCancelRecall}>
+              Editing previous message
+              <span>×</span>
+            </button>
+          )}
+
+          {attachments.map((attachment) => (
+            <button
+              key={attachment.id}
+              type="button"
+              className="meta-pill attachment-pill"
+              onClick={() => onRemoveAttachment?.(attachment.id)}
+              title={`Remove ${attachment.name}`}
+            >
+              <span className="attachment-name">{attachment.name}</span>
+              <span className="attachment-size">{attachment.sizeLabel}</span>
+              <span>×</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={`chat-input-box ${isStreaming ? "streaming" : ""}`}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          hidden
+          onChange={handleFileChange}
+        />
+
         {/* Attach icon */}
-        <button className="input-icon-btn" title="Attach file" type="button">
+        <button
+          className="input-icon-btn"
+          title="Attach file"
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.48" />
@@ -66,7 +132,7 @@ export default function ChatInput({
           <button
             className="action-btn send-btn"
             onClick={onSend}
-            disabled={!value.trim() || disabled}
+            disabled={!canSend || disabled}
             title="Send message"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -78,7 +144,7 @@ export default function ChatInput({
       </div>
 
       <p className="input-hint">
-        <kbd>Enter</kbd> send · <kbd>Shift+Enter</kbd> newline · <kbd>↑</kbd> edit last
+        <kbd>Enter</kbd> send · <kbd>Shift+Enter</kbd> newline · <kbd>↑</kbd> recall last
       </p>
 
       <style>{`
@@ -88,6 +154,48 @@ export default function ChatInput({
           padding: 10px 20px 24px;
           background: transparent;
           font-family: 'Syne', sans-serif;
+        }
+
+        .composer-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .meta-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid #3f3f46;
+          border-radius: 999px;
+          background: #1f1f23;
+          color: #d4d4d8;
+          padding: 7px 12px;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        .meta-pill span:last-child {
+          color: #8d8da3;
+          font-weight: 700;
+        }
+
+        .attachment-pill {
+          max-width: 100%;
+        }
+
+        .attachment-name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 160px;
+        }
+
+        .attachment-size {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
+          color: #8d8da3;
         }
 
         .chat-input-box {

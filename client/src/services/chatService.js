@@ -1,49 +1,75 @@
 // services/chatService.js
 // All HTTP calls to the Express backend.
 // Uses fetch (native) with SSE for streaming and JSON for REST operations.
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/chat";
-
-// ── Helpers ─
-
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    credentials: "include",      
-    ...options,
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`API ${res.status}: ${body}`);
-  }
-
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
+import { getDeviceId } from "../utils/memory";
+import {
+  CHAT_API_BASE,
+  CONVERSATION_API_BASE,
+  HEALTH_API_BASE,
+} from "./apiBase";
 
 // ── Chat CRUD 
 
 export const chatService = {
   /** GET /chats — returns array of chat summaries */
-  getChats: () => request("/conversations").then(data => data.conversations ?? data),
+  getChats: (character, deviceId) => 
+    fetch(`${CONVERSATION_API_BASE}?character=${encodeURIComponent(character)}&deviceId=${encodeURIComponent(deviceId)}`, {
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        return data.conversations ?? data;
+      }),
 
   /** GET /chats/:id/messages */
-  getChatMessages: (chatId) => request(`/conversations/${chatId}/messages`).then(data => data.messages ?? data),
+  getChatMessages: (chatId, deviceId = getDeviceId()) =>
+    fetch(`${CONVERSATION_API_BASE}/${chatId}/messages?deviceId=${encodeURIComponent(deviceId)}`, {
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        return data.messages ?? data;
+      }),
 
-  /** POST /chats — body: { title } */
+  /** POST /chats — body: { title, character, deviceId } */
   createChat: (body) =>
-    request("/conversations", { method: "POST", body: JSON.stringify(body) })
-      .then(data => data.conversation ?? data),
+    fetch(`${CONVERSATION_API_BASE}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        return data.conversation ?? data;
+      }),
 
   /** PATCH /chats/:id */
-  updateChat: (chatId, body) =>
-    request(`/conversations/${chatId}`, { method: "PATCH", body: JSON.stringify(body) })
-      .then(data => data.conversation ?? data),
+  updateChat: (chatId, body, deviceId = getDeviceId()) =>
+    fetch(`${CONVERSATION_API_BASE}/${chatId}?deviceId=${encodeURIComponent(deviceId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        return data.conversation ?? data;
+      }),
 
   /** DELETE /chats/:id */
-  deleteChat: (chatId) =>
-    request(`/conversations/${chatId}`, { method: "DELETE" }),
+  deleteChat: (chatId, deviceId = getDeviceId()) =>
+    fetch(`${CONVERSATION_API_BASE}/${chatId}?deviceId=${encodeURIComponent(deviceId)}`, {
+      method: "DELETE",
+      credentials: "include",
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+      return null;
+    }),
 
   // ── Streaming ────────────────────────────────────────────────────────────
   /**
@@ -55,7 +81,7 @@ export const chatService = {
    * @param {AbortSignal} signal
    */
   streamChat: async (payload, onToken, signal) => {
-    const res = await fetch(`${BASE_URL}/chat/stream`, {
+    const res = await fetch(`${CHAT_API_BASE}/stream`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(payload),
@@ -108,5 +134,9 @@ export const chatService = {
 
   // ── Utility ──────────────────────────────────────────────────────────────
   /** Health check */
-  ping: () => request("/health"),
+  ping: async () => {
+    const res = await fetch(HEALTH_API_BASE, { credentials: "include" });
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+    return res.json();
+  },
 };

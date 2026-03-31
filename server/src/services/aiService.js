@@ -41,7 +41,7 @@ export async function streamCompletion({ messages, model, maxTokens, systemPromp
       model:      safeModel,
       messages:   fullMessages,
       max_tokens: safeMaxTokens,
-      stream:     false, // Fetch full response for delayed typing simulation
+      stream:     true,
       temperature: 0.7,
     }),
   });
@@ -54,28 +54,116 @@ export async function streamCompletion({ messages, model, maxTokens, systemPromp
     throw new Error(`OpenRouter error ${orRes.status}: ${errText}`);
   }
 
-  // ── Parse Response & Simulate Typing Delay ─────────────────────────────────
-  const data = await orRes.json();
-  const fullContent = data?.choices?.[0]?.message?.content || "";
-  const usage = data?.usage || {};
-
-  try {
-    const { calculateTypingDelay } = await import("../utils/behavior.js");
-    const delay = calculateTypingDelay(fullContent);
-    await new Promise(r => setTimeout(r, delay));
-    
-    // Write full response as a single SSE chunk
-    if (fullContent) {
-      res.write(`data: ${JSON.stringify({ token: fullContent })}\n\n`);
-    }
-  } catch (err) {
-    console.error("[aiService] typing simulation error:", err);
-  } finally {
+  if (!orRes.body) {
+    res.write(`data: ${JSON.stringify({ error: "OpenRouter returned an empty stream" })}\n\n`);
     res.write("data: [DONE]\n\n");
     res.end();
+    throw new Error("OpenRouter returned an empty stream");
   }
 
-  return { content: fullContent, usage };
+  // ── Parse upstream SSE and forward tokens immediately ─────────────────────
+  const reader = orRes.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullContent = "";
+  let usage = {};
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+
+      for (const event of events) {
+        const dataLines = event
+          .split("\n")
+          .filter((line) => line.startsWith("data: "))
+          .map((line) => line.slice(6).trim());
+
+        for (const data of dataLines) {
+          if (!data) continue;
+          if (data === "[DONE]") {
+            res.write("data: [DONE]\n\n");
+            res.end();
+            return { content: fullContent, usage };
+          }
+
+          let parsed;
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            continue;
+          }
+
+          if (parsed.error) {
+            const message =
+              typeof parsed.error === "string"
+                ? parsed.error
+                : JSON.stringify(parsed.error);
+            res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+            res.write("data: [DONE]\n\n");
+            res.end();
+            throw new Error(message);
+          }
+
+          const token =
+            parsed?.choices?.[0]?.delta?.content ??
+            parsed?.choices?.[0]?.message?.content ??
+            parsed?.token ??
+            "";
+
+          if (token) {
+            fullContent += token;
+            res.write(`data: ${JSON.stringify({ token })}\n\n`);
+          }
+
+          if (parsed?.usage) {
+            usage = parsed.usage;
+          }
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const trailingData = buffer
+        .split("\n")
+        .filter((line) => line.startsWith("data: "))
+        .map((line) => line.slice(6).trim());
+
+      for (const data of trailingData) {
+        if (!data || data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const token =
+            parsed?.choices?.[0]?.delta?.content ??
+            parsed?.choices?.[0]?.message?.content ??
+            parsed?.token ??
+            "";
+          if (token) {
+            fullContent += token;
+            res.write(`data: ${JSON.stringify({ token })}\n\n`);
+          }
+          if (parsed?.usage) usage = parsed.usage;
+        } catch {
+          // ignore trailing malformed payloads
+        }
+      }
+    }
+
+    res.write("data: [DONE]\n\n");
+    res.end();
+    return { content: fullContent, usage };
+  } catch (err) {
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ error: err.message || "Streaming failed" })}\n\n`);
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
+    throw err;
+  }
 }
 
 /**

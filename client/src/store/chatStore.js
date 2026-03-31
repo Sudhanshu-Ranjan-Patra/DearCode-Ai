@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const DEFAULT_MODEL = "google/gemini-2.0-flash-001";
-
 export const useChatStore = create(
   persist(
     (set, get) => ({
@@ -14,19 +12,42 @@ export const useChatStore = create(
 
       // ── Active chat & Character ─────────────────────────────────────────────
       activeChatId: null,
-      setActiveChatId: (id) => set({ activeChatId: id }),
+      setActiveChatId: (id) => set((s) => ({
+        activeChatId: id,
+        lastActiveChats: { ...s.lastActiveChats, [s.selectedCharacter]: id }
+      })),
       
       selectedCharacter: "girlfriend",
       setSelectedCharacter: (char) => set({ selectedCharacter: char }),
+
+      // ── Chat Memory Caches ──────────────────────────────────────────────────
+      chatsByCharacter: { girlfriend: [], bestfriend: [], motivator: [] },
+      lastActiveChats: { girlfriend: null, bestfriend: null, motivator: null },
+      setChatsForCharacter: (char, chats) => set((s) => ({
+        chatsByCharacter: { ...s.chatsByCharacter, [char]: chats }
+      })),
+      getWorkspaceSnapshot: () => {
+        const state = get();
+        return {
+          sidebarOpen: state.sidebarOpen,
+          theme: state.theme,
+          selectedCharacter: state.selectedCharacter,
+          lastActiveChats: state.lastActiveChats,
+        };
+      },
+      applyWorkspaceSnapshot: (snapshot = {}) => set((s) => ({
+        sidebarOpen: snapshot.sidebarOpen ?? s.sidebarOpen,
+        theme: snapshot.theme ?? s.theme,
+        selectedCharacter: snapshot.selectedCharacter ?? s.selectedCharacter,
+        lastActiveChats: snapshot.lastActiveChats
+          ? { ...s.lastActiveChats, ...snapshot.lastActiveChats }
+          : s.lastActiveChats,
+      })),
 
       // ── Input ─────────────────────────────────────────────────────────────
       inputValue: "",
       setInputValue: (v) => set({ inputValue: v }),
       clearInput: () => set({ inputValue: "" }),
-
-      // ── Model ─────────────────────────────────────────────────────────────
-      model: DEFAULT_MODEL,
-      setModel: (m) => set({ model: m }),
 
       // ── Error banner ──────────────────────────────────────────────────────
       globalError: null,
@@ -40,12 +61,21 @@ export const useChatStore = create(
       // ── Convenience: reset for new chat ───────────────────────────────────
       resetForNewChat: () =>
         set({ activeChatId: null, inputValue: "", globalError: null }),
+
+      resetChatState: () =>
+        set({
+          activeChatId: null,
+          inputValue: "",
+          globalError: null,
+          chatsByCharacter: { girlfriend: [], bestfriend: [], motivator: [] },
+          lastActiveChats: { girlfriend: null, bestfriend: null, motivator: null },
+          selectedCharacter: "girlfriend",
+        }),
     }),
     {
       name: "codeai-chat-store",       // persisted in localStorage
       partialize: (s) => ({            // only persist non-sensitive fields
         sidebarOpen: s.sidebarOpen,
-        model:       s.model,
         theme:       s.theme,
         selectedCharacter: s.selectedCharacter,
       }),
