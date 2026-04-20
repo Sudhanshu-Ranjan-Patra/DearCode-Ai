@@ -128,7 +128,7 @@ npm install
 Create `server/.env` with at least:
 
 ```env
-PORT=5000
+PORT=8000
 NODE_ENV=development
 MONGODB_URI=mongodb://127.0.0.1:27017/dearcode-ai
 OPENROUTER_API_KEY=your_openrouter_key
@@ -166,12 +166,12 @@ Notes:
 If needed, create `client/.env`:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:8000/api
 ```
 
 The client handles either:
-- `VITE_API_URL=http://localhost:5000/api`
-- `VITE_API_URL=http://localhost:5000/api/chat`
+- `VITE_API_URL=http://localhost:8000/api`
+- `VITE_API_URL=http://localhost:8000/api/chat`
 
 ### 4. Run the app
 
